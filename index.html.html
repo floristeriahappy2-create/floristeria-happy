@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Floristería Happy — Entregamos sentimientos</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#f7f4f4; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e3dada;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fondo:#1a1516; --card:#251e1f; --texto:#f1eaea; --suave:#b3a8a9; --borde:#3d3334; --rosado:#3a2124; } }
+  :root[data-theme="dark"] { --fondo:#1a1516; --card:#251e1f; --texto:#f1eaea; --suave:#b3a8a9; --borde:#3d3334; --rosado:#3a2124; }
+  *, *::before, *::after { box-sizing:inherit; }
+  body { margin:0; font-family:Poppins,system-ui,Segoe UI,Arial,sans-serif; background:var(--fondo); color:var(--texto); }
+  header { background:var(--rojo); color:#fff; padding:14px 20px; display:flex; align-items:center; gap:14px; }
+  header img { width:72px; height:auto; border-radius:10px; }
+  header h1 { margin:0; font-size:26px; font-weight:700; }
+  header p { margin:2px 0 0; opacity:.92; font-size:16px; font-style:italic; }
+  .wa { display:inline-block; margin-top:8px; background:#fff; color:var(--rojo); padding:6px 12px; border-radius:20px; font-size:13px; font-weight:600; text-decoration:none; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  .filtros { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  input, select, textarea { padding:10px 12px; border:1px solid var(--borde); border-radius:8px; font-size:15px; font-family:inherit; background:var(--card); color:var(--texto); max-width:100%; }
+  .filtros input { flex:1; min-width:180px; }
+  button { font-family:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid #f28b91; outline-offset:2px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:14px; }
+  .card { background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.12); display:flex; flex-direction:column; }
+  .foto { height:150px; display:flex; align-items:center; justify-content:center; font-size:56px; background:var(--rosado); }
+  .foto img { width:100%; height:100%; object-fit:cover; }
+  .body { padding:12px; flex:1; display:flex; flex-direction:column; gap:6px; }
+  .body h3 { margin:0; font-size:15px; }
+  .body .desc { margin:0; font-size:12px; color:var(--suave); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .meta { font-size:12px; color:var(--suave); }
+  .precio { font-weight:700; color:var(--rojo); font-size:17px; }
+  .card button { margin-top:auto; background:var(--rojo); color:#fff; border:0; padding:9px; border-radius:8px; font-size:14px; }
+  .card button:disabled { background:#999; cursor:not-allowed; }
+  .panel { background:var(--card); border-radius:12px; padding:16px; margin-top:22px; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .panel h2 { margin:0 0 10px; font-size:18px; }
+  .tabla { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--borde); vertical-align:middle; }
+  .qty button, .mini { min-width:28px; height:28px; border:1px solid var(--borde); background:var(--card); color:var(--texto); border-radius:6px; }
+  .total { text-align:right; font-size:18px; font-weight:700; margin-top:10px; }
+  form.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  form label { display:flex; flex-direction:column; font-size:13px; gap:4px; }
+  .ancho { grid-column:1 / -1; }
+  @media (max-width:560px) { form.grid2 { grid-template-columns:1fr; } }
+  .primario { background:var(--rojo); color:#fff; border:0; padding:12px 16px; border-radius:8px; font-size:15px; font-weight:600; }
+  .secundario { background:var(--card); color:var(--rojo); border:1.5px solid var(--rojo); padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600; }
+  .peligro { background:transparent; color:var(--rojo); border:1px solid var(--rojo); padding:5px 10px; border-radius:6px; font-size:13px; }
+  form.grid2 .primario { grid-column:1 / -1; }
+  .aviso { margin-top:12px; padding:12px; border-radius:8px; background:var(--rosado); display:none; }
+  pre { white-space:pre-wrap; word-break:break-word; font-size:12px; background:rgba(0,0,0,.05); padding:10px; border-radius:8px; margin:8px 0 0; }
+  footer { text-align:center; padding:24px; }
+  footer button { background:none; border:0; color:var(--suave); font-size:13px; text-decoration:underline; }
+  #admin { display:none; border:2px solid var(--rojo); }
+  .acciones { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 4px; }
+  .thumb { width:52px; height:52px; border-radius:8px; object-fit:cover; background:var(--rosado); display:flex; align-items:center; justify-content:center; font-size:24px; }
+  .edit { width:80px; padding:6px; font-size:14px; }
+  .ayuda { font-size:13px; color:var(--suave); margin:4px 0 0; }
+  .oculto { display:none; }
+  .tabs { display:flex; gap:4px; overflow-x:auto; border-bottom:2px solid var(--borde); margin-bottom:12px; scrollbar-width:thin; }
+  .tab { flex:0 0 auto; background:none; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; padding:10px 12px; font-size:15px; color:var(--suave); white-space:nowrap; }
+  .tab[aria-selected="true"] { color:var(--rojo); border-bottom-color:var(--rojo); font-weight:600; }
+  .ocasiones { display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; margin-bottom:6px; scrollbar-width:thin; }
+  .chip { flex:0 0 auto; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); padding:8px 14px; border-radius:22px; font-size:14px; white-space:nowrap; }
+  .chip[aria-pressed="true"] { background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  .grupo { font-size:12px; color:var(--suave); align-self:center; padding:0 4px 0 8px; white-space:nowrap; }
+  .proxima { background:var(--rosado); border-radius:10px; padding:10px 14px; margin:0 0 14px; font-size:14px; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
+  .proxima button { background:var(--rojo); color:#fff; border:0; border-radius:16px; padding:5px 12px; font-size:13px; }
+  .checks { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:14px; }
+  .checks label { flex-direction:row; align-items:center; gap:6px; font-size:14px; }
+  .tag { display:inline-block; font-size:11px; background:var(--rosado); border-radius:10px; padding:1px 8px; margin:2px 3px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAEkAUADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDzyiiivnD97CiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiinbsQ5xTs2FFJmlo5WNTT2YUUUUigooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKK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" alt="Floristería Happy">
+  <div><h1>Floristería Happy</h1>
+  <p>Entregamos sentimientos</p>
+  <a class="wa" href="https://wa.me/c/51941905462" target="_blank" rel="noopener">Ver catálogo en WhatsApp</a></div>
+</header>
+
+<main>
+  <!-- ===== PANEL ADMINISTRADOR ===== -->
+  <section class="panel" id="admin">
+    <h2>Administrar catálogo</h2>
+    <p class="ayuda" id="modoInfo"></p>
+    <form id="formLogin" class="grid2 oculto">
+      <label>Correo del administrador<input name="email" type="email" required autocomplete="username"></label>
+      <label>Contraseña<input name="pass" type="password" required autocomplete="current-password"></label>
+      <button class="primario" type="submit">Entrar</button>
+    </form>
+    <div id="zonaAdmin">
+    <form id="formProd" class="grid2">
+      <input type="hidden" name="id">
+      <label>Nombre<input name="nombre" required placeholder="Ramo de 12 rosas"></label>
+      <label class="ancho">Descripción<textarea name="desc" rows="2" placeholder="Ramo de 12 rosas rojas..."></textarea></label>
+      <label>Sección<select name="categoria" id="selSeccion"></select></label>
+      <label>Precio (S/)<input name="precio" type="number" step="0.10" min="0" required></label>
+      <label>Stock<input name="stock" type="number" min="0" required value="1"></label>
+      <fieldset class="ancho" style="border:1px solid var(--borde);border-radius:8px;padding:10px 12px">
+        <legend style="font-size:13px;padding:0 4px">Tipo de flor</legend>
+        <div class="checks" id="checksTipo"></div>
+      </fieldset>
+      <fieldset class="ancho" style="border:1px solid var(--borde);border-radius:8px;padding:10px 12px">
+        <legend style="font-size:13px;padding:0 4px">Ocasiones</legend>
+        <div class="checks" id="checksOcasion"></div>
+      </fieldset>
+      <label class="ancho">Foto<input name="foto" type="file" accept="image/*"></label>
+      <button class="primario" type="submit" id="btnGuardar">Agregar producto</button>
+      <button class="secundario ancho oculto" type="button" id="btnCancelar">Cancelar edición</button>
+    </form>
+
+    <h2 style="margin-top:22px">Cargar o guardar desde archivo</h2>
+    <p class="ayuda">Excel o CSV con columnas: nombre, descripcion, seccion, precio, stock, tipos, ocasiones, foto. Sección: Ramos, Arreglos florales, Flores secas, Cuadros macramé o Suscripción floral (puede quedar vacía). En tipos escribe una o varias flores separadas por coma (por ejemplo: rosas, lirios). En ocasiones igual (por ejemplo: cumpleaños, novias). La foto es opcional y va como enlace. También acepta el archivo catalogo.json que descargas aquí, que incluye las fotos.</p>
+    <div class="acciones">
+      <label class="secundario">Importar Excel / CSV / JSON
+        <input type="file" id="archivo" accept=".xlsx,.xls,.csv,.json" hidden></label>
+      <label style="flex-direction:row;align-items:center;gap:6px;font-size:14px"><input type="checkbox" id="reemplazar"> Reemplazar todo el catálogo</label>
+    </div>
+    <div class="acciones">
+      <button class="secundario" id="expJson" type="button">Descargar catalogo.json</button>
+      <button class="secundario" id="expXlsx" type="button">Descargar plantilla Excel</button>
+      <button class="peligro" id="restaurar" type="button">Volver a los productos de ejemplo</button>
+    </div>
+    <div class="aviso" id="avisoAdmin"></div>
+
+    <h2 style="margin-top:22px">Productos (<span id="nProd">0</span>)</h2>
+    <div class="tabla">
+      <table>
+        <thead><tr><th>Foto</th><th>Producto</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+        <tbody id="listaAdmin"></tbody>
+      </table>
+    </div>
+    <div class="acciones" id="zonaSalir"><button class="secundario oculto" id="btnSalir" type="button">Cerrar sesión</button></div>
+    </div>
+  </section>
+
+  <!-- ===== TIENDA ===== -->
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
+  <nav class="ocasiones" id="ocasiones" aria-label="Ocasiones"></nav>
+  <div class="filtros">
+    <input id="buscar" type="search" placeholder="Buscar en el catálogo...">
+    <select id="orden" aria-label="Ordenar">
+      <option value="pred">Ordenar: predeterminado</option>
+      <option value="precio-asc">Precio: bajo a alto</option>
+      <option value="precio-desc">Precio: alto a bajo</option>
+      <option value="nombre">Nombre: A a Z</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <section class="panel">
+    <h2>Tu pedido</h2>
+    <div class="tabla"><table>
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Subtotal</th></tr></thead>
+      <tbody id="carrito"></tbody>
+    </table></div>
+    <div class="total">Total: S/ <span id="total">0.00</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Datos de entrega</h2>
+    <form id="form" class="grid2">
+      <label>Quien compra<input name="cliente" required></label>
+      <label>Teléfono / WhatsApp<input name="telefono" type="tel" required></label>
+      <label>Quien recibe<input name="destinatario" required></label>
+      <label>Teléfono de quien recibe<input name="tel_destinatario" type="tel"></label>
+      <label class="ancho">Dirección de entrega<input name="direccion" required></label>
+      <label>Distrito<input name="distrito" required></label>
+      <label>Fecha de entrega<input name="fecha" type="date" required></label>
+      <label>Franja horaria<select name="franja"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
+      <label>Método de pago<select name="pago"><option>Yape</option><option>Plin</option><option>Transferencia</option><option>Efectivo contra entrega</option></select></label>
+      <label>DNI de quien paga (para el comprobante)<input name="dni" inputmode="numeric" autocomplete="off"></label>
+      <label class="ancho">Mensaje para la tarjeta<textarea name="tarjeta" rows="2"></textarea></label>
+      <button class="primario" type="submit">Enviar pedido por WhatsApp</button>
+    </form>
+    <div class="aviso" id="aviso"></div>
+  </section>
+</main>
+<footer><button id="btnAdmin" type="button">Administrar</button></footer>
+
+<script>
+const WHATSAPP = "51941905462";
+const PEDIDOS_URL = "";  // pega aquí la URL de tu Google Apps Script para guardar los pedidos en Excel/Sheets
+const CLAVE_ADMIN = "happy2026";          // solo para el modo sin nube
+
+/* ====== MODO NUBE (Firebase) ======
+   Pega aquí la configuración de tu proyecto Firebase para que los cambios
+   del administrador se vean al instante para todos los clientes.
+   Si lo dejas en null, la página funciona en modo local (solo este navegador). */
+const FIREBASE_CONFIG = null;
+/* Ejemplo:
+const FIREBASE_CONFIG = {
+  apiKey: "AIza...",
+  authDomain: "floristeria-happy.firebaseapp.com",
+  projectId: "floristeria-happy",
+  appId: "1:123:web:abc"
+};
+*/
+let nube = null;      // { db, auth } cuando Firebase está activo
+let usuario = null;   // administrador conectado
+const KEY = "happy_catalogo_v7";
+const SECCIONES = [
+  { id:"ramos",        nombre:"Ramos",              icono:"💐" },
+  { id:"arreglos",     nombre:"Arreglos florales",  icono:"🌺" },
+  { id:"macrame",      nombre:"Cuadros macramé",    icono:"🪢" },
+  { id:"suscripcion",  nombre:"Suscripción floral", icono:"📅" }
+];
+const TIPOS = [
+  { id:"tulipanes",   nombre:"Tulipanes",   icono:"🌷" },
+  { id:"rosas",       nombre:"Rosas",       icono:"🌹" },
+  { id:"gerberas",    nombre:"Gerberas",    icono:"🌼" },
+  { id:"lirios",      nombre:"Lirios",      icono:"🪷" },
+  { id:"astromelias", nombre:"Astromelias", icono:"🌸" }
+];
+const OCASIONES = [
+  { id:"cumpleanos",    nombre:"Cumpleaños",         icono:"🎂", tipo:"ocasion" },
+  { id:"aniversario",   nombre:"Aniversario",        icono:"💞", tipo:"ocasion" },
+  { id:"graduacion",    nombre:"Graduación",         icono:"🎓", tipo:"ocasion" },
+  { id:"para-el",       nombre:"Para él",            icono:"🤵", tipo:"ocasion" },
+  { id:"inauguracion",  nombre:"Inauguraciones",     icono:"🎉", tipo:"ocasion" },
+  { id:"novias",        nombre:"Novias",             icono:"👰", tipo:"ocasion" },
+  { id:"escritorio",    nombre:"Para su escritorio", icono:"🪴", tipo:"ocasion" },
+  { id:"condolencias",  nombre:"Condolencias",       icono:"🕊️", tipo:"ocasion" }
+];
+let filtro = { sec:"", grupo:"", val:"" };
+const EJEMPLO = [];
+let CATALOGO = [];
+const carrito = new Map();
+const $ = id => document.getElementById(id);
+const soles = n => Number(n).toFixed(2);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nuevoId = () => (CATALOGO.reduce((m,p) => Math.max(m, p.id), 0) + 1);
+
+/* ---------- Carga y guardado ---------- */
+function cargarScript(src) {
+  return new Promise((ok, mal) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = () => mal(new Error("No cargó " + src)); document.head.appendChild(t); });
+}
+async function iniciarNube() {
+  if (!FIREBASE_CONFIG) return false;
+  try {
+    const base = "https://cdn.jsdelivr.net/npm/firebase@10.12.2/";
+    await cargarScript(base + "firebase-app-compat.js");
+    await Promise.all([cargarScript(base + "firebase-firestore-compat.js"), cargarScript(base + "firebase-auth-compat.js")]);
+    firebase.initializeApp(FIREBASE_CONFIG);
+    nube = { db: firebase.firestore(), auth: firebase.auth() };
+    nube.auth.onAuthStateChanged(u => { usuario = u; pintarAcceso(); });
+    let primera = true;
+    await new Promise(listo => {
+      nube.db.collection("productos").onSnapshot(snap => {
+        CATALOGO = normalizar(snap.docs.map(d => d.data()));
+        if (primera) { primera = false; listo(); } else refrescar();
+      }, err => { console.error(err); if (primera) { primera = false; listo(); } });
+    });
+    return true;
+  } catch (err) { console.error(err); nube = null; return false; }
+}
+const col = () => nube.db.collection("productos");
+async function persistir(lista) {
+  if (!nube) return guardar();
+  try { for (const p of lista) await col().doc(String(p.id)).set(p); return true; }
+  catch (err) { avisar("avisoAdmin", "⚠️ No se pudo guardar en la nube: " + esc(err.message)); return false; }
+}
+async function eliminarRemoto(id) {
+  if (!nube) return guardar();
+  try { await col().doc(String(id)).delete(); } catch (err) { avisar("avisoAdmin", "⚠️ No se pudo eliminar: " + esc(err.message)); }
+}
+async function reemplazarRemoto(lista) {
+  if (!nube) return guardar();
+  const actuales = await col().get();
+  for (const d of actuales.docs) await d.ref.delete();
+  return persistir(lista);
+}
+async function cargar() {
+  if (await iniciarNube()) return;
+  // 1) Lo guardado en este navegador (cambios del administrador)
+  try { const g = localStorage.getItem(KEY); if (g) { CATALOGO = normalizar(JSON.parse(g)); return; } } catch {}
+  // 2) Archivo catalogo.json junto al index.html (GitHub Pages)
+  try { const r = await fetch("catalogo.json", { cache:"no-store" }); if (r.ok) { CATALOGO = normalizar(await r.json()); return; } } catch {}
+  // 3) Ejemplo
+  CATALOGO = normalizar(EJEMPLO);
+}
+function guardar() {
+  try { localStorage.setItem(KEY, JSON.stringify(CATALOGO)); return true; }
+  catch { avisar("avisoAdmin", "⚠️ El navegador se quedó sin espacio para guardar fotos. Descarga catalogo.json para no perder los cambios, o usa fotos más livianas."); return false; }
+}
+function normalizar(lista) {
+  if (!Array.isArray(lista)) throw new Error("El archivo no contiene una lista de productos.");
+  return lista.map((p, i) => ({
+    id: Number(p.id) || i + 1,
+    nombre: String(p.nombre ?? p.Nombre ?? "").trim(),
+    categoria: leerSeccion(p.seccion ?? p["sección"] ?? p.Seccion ?? p["Sección"] ?? p.categoria ?? p.Categoria ?? ""),
+    precio: Number(String(p.precio ?? p.Precio ?? 0).replace(",", ".")) || 0,
+    stock: parseInt(p.stock ?? p.Stock ?? 0) || 0,
+    desc: String(p.desc ?? p.descripcion ?? p["descripción"] ?? p.Descripcion ?? "").trim(),
+    tipos: leerLista(p.tipos ?? p.Tipos ?? p.tipo ?? p["tipo de flor"] ?? "", TIPOS),
+    ocasiones: leerOcasiones(p.ocasiones ?? p.Ocasiones ?? p.ocasion ?? ""),
+    foto: String(p.foto ?? p.Foto ?? "").trim()
+  })).filter(p => p.nombre);
+}
+
+/* ---------- Ocasiones ---------- */
+const sinTilde = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+function leerOcasiones(v) {
+  const partes = Array.isArray(v) ? v : String(v).split(/[,;|]/);
+  const ids = [];
+  for (const x of partes) {
+    const t = sinTilde(x); if (!t) continue;
+    const o = OCASIONES.find(o => o.id === t.replace(/\s+/g, "-") || sinTilde(o.nombre) === t || sinTilde(o.nombre).startsWith(t) || t.startsWith(sinTilde(o.nombre).replace(/s$/, "")) || (t.includes("defunc") && o.id === "condolencias") || (t.includes("madre") && o.id === "dia-madre") || (t.includes("mujer") && o.id === "dia-mujer") || (t.includes("valent") && o.id === "san-valentin") || (t.includes("amarill") && o.id === "flores-amarillas") || (t.includes("gradu") && o.id === "graduacion") || ((t === "para el" || t === "el" || t.includes("hombre")) && o.id === "para-el") || ((t.includes("novia") || t.includes("boda")) && o.id === "novias") || ((t.includes("escritorio") || t.includes("oficina")) && o.id === "escritorio") || (t.includes("navid") && o.id === "navidad"));
+    if (o && !ids.includes(o.id)) ids.push(o.id);
+  }
+  return ids;
+}
+function leerLista(v, catalogo) {
+  const partes = Array.isArray(v) ? v : String(v).split(/[,;|]/);
+  const ids = [];
+  for (const x of partes) {
+    const t = sinTilde(x); if (!t) continue;
+    const o = catalogo.find(o => o.id === t || sinTilde(o.nombre) === t || sinTilde(o.nombre).replace(/s$/, "") === t.replace(/s$/, "") || t.includes(sinTilde(o.nombre).replace(/s$/, "")));
+    if (o && !ids.includes(o.id)) ids.push(o.id);
+  }
+  return ids;
+}
+function leerSeccion(v) {
+  const t = sinTilde(v); if (!t) return "";
+  if (SECCIONES.some(x => x.id === t)) return t;
+  if (t.includes("macram") || t.includes("cuadro")) return "macrame";
+  if (t.includes("suscrip")) return "suscripcion";
+  if (t.includes("arreglo") || t.includes("corona")) return "arreglos";
+  if (t.includes("ramo") || t.includes("bouquet")) return "ramos";
+  return "";
+}
+const nombreSeccion = id => SECCIONES.find(x => x.id === id)?.nombre || "";
+const tipoOcasion = id => OCASIONES.find(o => o.id === id)?.tipo;
+const nombreTipo = id => TIPOS.find(t => t.id === id)?.nombre || id;
+const nombreOcasion = id => OCASIONES.find(o => o.id === id)?.nombre || id;
+function pintarNav() {
+  const activo = filtro.sec || (filtro.grupo === "tipo" ? "tipos" : filtro.grupo === "ocasion" ? "ocasiones" : "");
+  const sec = id => SECCIONES.find(x => x.id === id);
+  const tabs = [{ id:"", nombre:"Todo" }, sec("ramos"), sec("arreglos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
+  $("tabs").innerHTML = tabs.map(t => `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.nombre}</button>`).join("");
+  const sub = filtro.grupo === "tipo" ? TIPOS : filtro.grupo === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
+  $("ocasiones").style.display = sub.length ? "" : "none";
+  const etiqueta = filtro.grupo === "tipo" ? "Todas las flores" : "Todas";
+  $("ocasiones").innerHTML = `<button class="chip" data-val="" aria-pressed="${!filtro.val}">${etiqueta}</button>` +
+    sub.map(o => `<button class="chip" data-val="${o.id}" aria-pressed="${filtro.val === o.id}">${o.icono} ${o.nombre}</button>`).join("");
+}
+function pintarChecks(selT = [], selO = []) {
+  $("checksTipo").innerHTML = TIPOS.map(t =>
+    `<label><input type="checkbox" name="tipo" value="${t.id}" ${selT.includes(t.id) ? "checked" : ""}> ${t.icono} ${t.nombre}</label>`).join("");
+  $("checksOcasion").innerHTML = OCASIONES.filter(o => o.tipo === "ocasion").map(o =>
+    `<label><input type="checkbox" name="oc" value="${o.id}" ${selO.includes(o.id) ? "checked" : ""}> ${o.icono} ${o.nombre}</label>`).join("");
+}
+
+/* ---------- Fotos: reducir a 700 px para que pesen poco ---------- */
+function leerFoto(file) {
+  return new Promise((ok, mal) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 700, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.78));
+    };
+    img.onerror = () => mal(new Error("No se pudo leer la imagen"));
+    img.src = url;
+  });
+}
+
+/* ---------- Tienda ---------- */
+function pintarSecciones() {
+  $("selSeccion").innerHTML = SECCIONES.map(x => `<option value="${x.id}">${x.nombre}</option>`).join("") + `<option value="">Ninguna (solo en ocasiones)</option>`;
+}
+function fotoHTML(p, cls) {
+  return p.foto ? `<img class="${cls||""}" src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy">` : `<div class="${cls||""}">🌹</div>`;
+}
+function pintarGrid() {
+  const q = $("buscar").value.toLowerCase();
+  const lista = CATALOGO.filter(p => p.nombre.toLowerCase().includes(q)
+    && (!filtro.sec || p.categoria === filtro.sec)
+    && (filtro.grupo !== "tipo" || (filtro.val ? p.tipos.includes(filtro.val) : p.tipos.length))
+    && (filtro.grupo !== "ocasion" || (filtro.val ? p.ocasiones.includes(filtro.val) : p.ocasiones.length)));
+  const orden = $("orden").value;
+  if (orden === "precio-asc") lista.sort((a,b) => a.precio - b.precio);
+  else if (orden === "precio-desc") lista.sort((a,b) => b.precio - a.precio);
+  else if (orden === "nombre") lista.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  else lista.sort((a,b) => (b.stock > 0) - (a.stock > 0) || a.id - b.id);   // predeterminado: disponibles primero, en el orden en que se cargaron
+  $("grid").innerHTML = lista.map(p => `
+    <article class="card">
+      <div class="foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy">` : "🌹"}</div>
+      <div class="body">
+        <h3>${esc(p.nombre)}</h3>
+        <div class="meta">${nombreSeccion(p.categoria) ? esc(nombreSeccion(p.categoria)) + ", " : ""}${p.stock ? p.stock + " disponibles" : "agotado"}</div>
+        ${p.desc ? `<p class="desc">${esc(p.desc)}</p>` : ""}
+        <div>${p.ocasiones.slice(0,3).map(id => `<span class="tag">${esc(nombreOcasion(id))}</span>`).join("")}</div>
+        <div class="precio">S/ ${soles(p.precio)}</div>
+        <button data-add="${p.id}" ${p.stock ? "" : "disabled"}>${p.stock ? "Agregar" : "Sin stock"}</button>
+      </div>
+    </article>`).join("") || `<p>Todavía no hay productos ${filtro.val ? "de " + esc(filtro.grupo === "tipo" ? nombreTipo(filtro.val) : nombreOcasion(filtro.val)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
+}
+function cambiar(id, delta) {
+  const p = CATALOGO.find(x => x.id === id); if (!p) return;
+  const n = (carrito.get(id) || 0) + delta;
+  if (n > p.stock) { alert("No hay más stock de " + p.nombre); return; }
+  n <= 0 ? carrito.delete(id) : carrito.set(id, n);
+  pintarCarrito();
+}
+function pintarCarrito() {
+  let total = 0;
+  for (const id of [...carrito.keys()]) if (!CATALOGO.find(p => p.id === id)) carrito.delete(id);
+  const filas = [...carrito].map(([id, c]) => {
+    const p = CATALOGO.find(x => x.id === id); total += p.precio * c;
+    return `<tr><td>${esc(p.nombre)}</td>
+      <td class="qty"><button data-menos="${id}" aria-label="Quitar uno">−</button> ${c} <button data-mas="${id}" aria-label="Agregar uno">+</button></td>
+      <td>S/ ${soles(p.precio * c)}</td></tr>`;
+  });
+  $("carrito").innerHTML = filas.join("") || '<tr><td colspan="3">Tu pedido está vacío. Agrega productos del catálogo.</td></tr>';
+  $("total").textContent = soles(total);
+}
+
+/* ---------- Administrador ---------- */
+function pintarAdmin() {
+  $("nProd").textContent = CATALOGO.length;
+  $("listaAdmin").innerHTML = [...CATALOGO].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(p => `
+    <tr>
+      <td>${p.foto ? `<img class="thumb" src="${esc(p.foto)}" alt="">` : `<div class="thumb">🌹</div>`}</td>
+      <td><strong>${esc(p.nombre)}</strong><br><span class="meta">${esc(nombreSeccion(p.categoria) || "Sin sección")}</span><br>${p.ocasiones.map(id => `<span class="tag">${esc(nombreOcasion(id))}</span>`).join("") || '<span class="meta">Sin ocasión</span>'}</td>
+      <td><input class="edit" type="number" step="0.10" min="0" value="${p.precio}" data-precio="${p.id}" aria-label="Precio"></td>
+      <td><input class="edit" type="number" min="0" value="${p.stock}" data-stock="${p.id}" aria-label="Stock"></td>
+      <td style="white-space:nowrap"><button class="mini" data-editar="${p.id}">Editar</button>
+          <button class="peligro" data-borrar="${p.id}">Eliminar</button></td>
+    </tr>`).join("") || '<tr><td colspan="5">No hay productos. Agrega uno o importa un archivo.</td></tr>';
+}
+function refrescar() { pintarNav(); pintarGrid(); pintarCarrito(); pintarAdmin(); }
+function avisar(id, html) { const a = $(id); a.style.display = "block"; a.innerHTML = html; }
+
+function modoEdicion(p) {
+  const f = $("formProd");
+  f.id.value = p ? p.id : ""; f.nombre.value = p ? p.nombre : ""; f.desc.value = p ? (p.desc || "") : ""; f.categoria.value = p ? p.categoria : "ramos";
+  f.precio.value = p ? p.precio : ""; f.stock.value = p ? p.stock : 1; f.foto.value = "";
+  pintarChecks(p ? p.tipos : [], p ? p.ocasiones : []);
+  $("btnGuardar").textContent = p ? "Guardar cambios" : "Agregar producto";
+  $("btnCancelar").classList.toggle("oculto", !p);
+  if (p) f.nombre.focus();
+}
+
+$("formProd").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, id = Number(f.id.value);
+  let foto = id ? (CATALOGO.find(p => p.id === id)?.foto || "") : "";
+  if (f.foto.files[0]) { try { foto = await leerFoto(f.foto.files[0]); } catch (err) { alert(err.message); return; } }
+  const datos = { nombre:f.nombre.value.trim(), desc:f.desc.value.trim(), categoria:f.categoria.value, precio:Number(f.precio.value), stock:parseInt(f.stock.value)||0, foto,
+    tipos:[...f.querySelectorAll('[name=tipo]:checked')].map(c => c.value),
+    ocasiones:[...f.querySelectorAll('[name=oc]:checked')].map(c => c.value) };
+  let prod;
+  if (id) { prod = CATALOGO.find(p => p.id === id); Object.assign(prod, datos); }
+  else { prod = { id:nuevoId(), ...datos }; CATALOGO.push(prod); }
+  if (await persistir([prod])) avisar("avisoAdmin", `✅ ${esc(datos.nombre)} ${id ? "actualizado" : "agregado"}.`);
+  modoEdicion(null); refrescar();
+});
+$("btnCancelar").onclick = () => modoEdicion(null);
+
+$("listaAdmin").addEventListener("change", e => {
+  const t = e.target, id = Number(t.dataset.precio || t.dataset.stock); if (!id) return;
+  const p = CATALOGO.find(x => x.id === id);
+  if (t.dataset.precio) p.precio = Number(t.value) || 0; else p.stock = parseInt(t.value) || 0;
+  persistir([p]); pintarGrid(); pintarCarrito();
+});
+
+/* Importar */
+$("archivo").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    let lista;
+    if (file.name.toLowerCase().endsWith(".json")) lista = JSON.parse(await file.text());
+    else {
+      if (typeof XLSX === "undefined") throw new Error("No cargó el lector de Excel. Revisa tu conexión a internet.");
+      const wb = XLSX.read(await file.arrayBuffer());
+      lista = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:"" });
+    }
+    let nuevos = normalizar(lista);
+    if (!nuevos.length) throw new Error("No encontré productos. Revisa que la primera fila tenga: nombre, categoria, precio, stock, foto.");
+    const cambiados = [];
+    if ($("reemplazar").checked) { CATALOGO = nuevos.map((p, i) => ({ ...p, id:i + 1 })); cambiados.push(...CATALOGO); }
+    else {
+      let n = 0, a = 0;
+      for (const p of nuevos) {
+        const ya = CATALOGO.find(x => x.nombre.toLowerCase() === p.nombre.toLowerCase());
+        if (ya) { Object.assign(ya, { ...p, id:ya.id, foto:p.foto || ya.foto, tipos:p.tipos.length ? p.tipos : ya.tipos, ocasiones:p.ocasiones.length ? p.ocasiones : ya.ocasiones }); cambiados.push(ya); a++; }
+        else { const nv = { ...p, id:nuevoId() }; CATALOGO.push(nv); cambiados.push(nv); n++; }
+      }
+      nuevos = null; avisar("avisoAdmin", `✅ Importado: ${n} nuevos, ${a} actualizados (por nombre).`);
+    }
+    if (nuevos) { avisar("avisoAdmin", `✅ Catálogo reemplazado con ${CATALOGO.length} productos.`); await reemplazarRemoto(CATALOGO); }
+    else await persistir(cambiados);
+    refrescar();
+  } catch (err) { avisar("avisoAdmin", "⚠️ " + esc(err.message)); }
+  e.target.value = "";
+});
+
+/* Exportar */
+function descargar(nombre, blob) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$("expJson").onclick = () => descargar("catalogo.json", new Blob([JSON.stringify(CATALOGO, null, 1)], { type:"application/json" }));
+$("expXlsx").onclick = () => {
+  if (typeof XLSX === "undefined") { alert("No cargó el lector de Excel."); return; }
+  const filas = CATALOGO.map(p => ({ nombre:p.nombre, descripcion:p.desc, seccion:nombreSeccion(p.categoria), precio:p.precio, stock:p.stock, tipos:p.tipos.map(nombreTipo).join(", "), ocasiones:p.ocasiones.map(nombreOcasion).join(", "), foto:p.foto.startsWith("data:") ? "" : p.foto }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.length ? filas : [{nombre:"",descripcion:"",seccion:"",precio:"",stock:"",tipos:"",ocasiones:"",foto:""}]), "Catalogo");
+  XLSX.writeFile(wb, "catalogo_happy.xlsx");
+};
+$("restaurar").onclick = () => {
+  if (!confirm("¿Borrar tus cambios y volver a los productos de ejemplo?")) return;
+  CATALOGO = normalizar(EJEMPLO); carrito.clear();
+  if (nube) reemplazarRemoto(CATALOGO); else { try { localStorage.removeItem(KEY); } catch {} }
+  refrescar();
+};
+
+/* Clics generales */
+document.addEventListener("click", e => {
+  const d = e.target.dataset; if (!d) return;
+  if (d.tab !== undefined) {
+    filtro = d.tab === "tipos" ? { sec:"", grupo:"tipo", val:"" } : d.tab === "ocasiones" ? { sec:"", grupo:"ocasion", val:"" } : { sec:d.tab, grupo:"", val:"" };
+    pintarNav(); pintarGrid();
+  }
+  if (d.val !== undefined && e.target.classList.contains("chip")) { filtro.val = d.val; pintarNav(); pintarGrid(); }
+  if (d.add) cambiar(+d.add, 1);
+  if (d.mas) cambiar(+d.mas, 1);
+  if (d.menos) cambiar(+d.menos, -1);
+  if (d.editar) { modoEdicion(CATALOGO.find(p => p.id === +d.editar)); $("admin").scrollIntoView({ behavior:"smooth" }); }
+  if (d.borrar) {
+    const p = CATALOGO.find(x => x.id === +d.borrar);
+    if (p && confirm(`¿Eliminar "${p.nombre}"?`)) { CATALOGO = CATALOGO.filter(x => x !== p); eliminarRemoto(p.id); refrescar(); }
+  }
+});
+
+$("btnAdmin").onclick = () => {
+  const abierto = $("admin").style.display === "block";
+  if (abierto) { $("admin").style.display = "none"; $("btnAdmin").textContent = "Administrar"; return; }
+  if (!nube && prompt("Clave de administrador:") !== CLAVE_ADMIN) { alert("Clave incorrecta."); return; }
+  $("admin").style.display = "block"; $("btnAdmin").textContent = "Cerrar administración";
+  pintarAcceso(); $("admin").scrollIntoView({ behavior:"smooth" });
+};
+function pintarAcceso() {
+  const dentro = !nube || !!usuario;
+  $("formLogin").classList.toggle("oculto", dentro);
+  $("zonaAdmin").style.display = dentro ? "" : "none";
+  $("btnSalir").classList.toggle("oculto", !(nube && usuario));
+  $("expJson").style.display = nube ? "none" : "";
+  $("modoInfo").textContent = nube
+    ? (usuario ? `Conectado como ${usuario.email}. Los cambios se ven al instante para todos los clientes.` : "Ingresa con tu cuenta de administrador.")
+    : "Modo local: los cambios se guardan solo en este navegador. Activa la nube para que todos los vean.";
+}
+$("formLogin").addEventListener("submit", async e => {
+  e.preventDefault();
+  try { await nube.auth.signInWithEmailAndPassword(e.target.email.value, e.target.pass.value); e.target.reset(); }
+  catch { alert("Correo o contraseña incorrectos."); }
+});
+$("btnSalir").onclick = () => nube && nube.auth.signOut();
+
+/* Pedido por WhatsApp */
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  if (!carrito.size) { alert("Agrega al menos un producto"); return; }
+  const d = Object.fromEntries(new FormData(e.target));
+  const lineas = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return `• ${c} x ${p.nombre} = S/ ${soles(p.precio * c)}`; });
+  const msg = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, `Total: S/ ${$("total").textContent}`, ``,
+    `Compra: ${d.cliente} (${d.telefono})`, `Recibe: ${d.destinatario}${d.tel_destinatario ? " (" + d.tel_destinatario + ")" : ""}`,
+    `Dirección: ${d.direccion}, ${d.distrito}`, `Entrega: ${d.fecha}, ${d.franja}`, `Pago: ${d.pago}`,
+    d.dni ? `DNI: ${d.dni}` : "", d.tarjeta ? `Tarjeta: "${d.tarjeta}"` : ""].filter(Boolean).join("\n");
+  if (PEDIDOS_URL) {
+    const fila = { fecha_pedido: new Date().toLocaleString("es-PE"), mes: new Date().toISOString().slice(0, 7), productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number($("total").textContent), ...d };
+    fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
+  }
+  window.open(`https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg), "_blank");
+  avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Solo presiona enviar.");
+  carrito.clear(); pintarCarrito(); e.target.reset();
+});
+
+["buscar","orden"].forEach(id => $(id).addEventListener("input", pintarGrid));
+const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
+document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
+pintarSecciones(); pintarChecks(); cargar().then(refrescar);
+</script>
+</body>
+</html>
