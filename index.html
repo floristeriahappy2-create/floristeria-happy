@@ -60,17 +60,19 @@
   .edit { width:80px; padding:6px; font-size:14px; }
   .ayuda { font-size:13px; color:var(--suave); margin:4px 0 0; }
   .oculto { display:none; }
-  .tabs { display:flex; gap:4px; overflow-x:auto; border-bottom:2px solid var(--borde); margin-bottom:12px; scrollbar-width:thin; }
-  .tab { flex:0 0 auto; background:none; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; padding:10px 12px; font-size:15px; color:var(--suave); white-space:nowrap; }
+  .tabs { display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; border-bottom:2px solid var(--borde); margin-bottom:12px; scrollbar-width:thin; scroll-snap-type:x proximity; }
+  .tab { flex:0 0 auto; background:none; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; padding:12px 14px; min-height:44px; font-size:15px; color:var(--suave); white-space:nowrap; scroll-snap-align:start; }
   .tab[aria-selected="true"] { color:var(--rojo); border-bottom-color:var(--rojo); font-weight:600; }
-  .ocasiones { display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; margin-bottom:6px; scrollbar-width:thin; }
-  .chip { flex:0 0 auto; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); padding:8px 14px; border-radius:22px; font-size:14px; white-space:nowrap; }
+  .ocasiones { display:flex; flex-wrap:wrap; gap:8px; padding:2px 0 12px; margin-bottom:6px; }
+  .chip { flex:0 0 auto; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); padding:10px 16px; min-height:42px; border-radius:22px; font-size:15px; white-space:nowrap; }
   .chip[aria-pressed="true"] { background:var(--rojo); border-color:var(--rojo); color:#fff; }
   .grupo { font-size:12px; color:var(--suave); align-self:center; padding:0 4px 0 8px; white-space:nowrap; }
   .proxima { background:var(--rosado); border-radius:10px; padding:10px 14px; margin:0 0 14px; font-size:14px; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
   .proxima button { background:var(--rojo); color:#fff; border:0; border-radius:16px; padding:5px 12px; font-size:13px; }
-  .checks { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:14px; }
-  .checks label { flex-direction:row; align-items:center; gap:6px; font-size:14px; }
+  .checks { display:flex; flex-wrap:wrap; gap:8px; font-size:14px; }
+  .checks label { flex-direction:row; align-items:center; gap:8px; font-size:15px; border:1.5px solid var(--borde); border-radius:22px; padding:9px 14px; min-height:42px; cursor:pointer; user-select:none; }
+  .checks label:has(input:checked) { background:var(--rosado); border-color:var(--rojo); color:var(--rojo); font-weight:600; }
+  .checks input { width:20px; height:20px; accent-color:var(--rojo); }
   .tag { display:inline-block; font-size:11px; background:var(--rosado); border-radius:10px; padding:1px 8px; margin:2px 3px 0 0; }
 </style>
 </head>
