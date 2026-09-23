@@ -22,8 +22,9 @@
   .filtros { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   input, select, textarea { padding:10px 12px; border:1px solid var(--borde); border-radius:8px; font-size:15px; font-family:inherit; background:var(--card); color:var(--texto); max-width:100%; }
   .filtros input { flex:1; min-width:160px; }
-  .filtros .sel { flex:1 1 46%; min-width:150px; min-height:46px; font-size:15px; font-weight:500; }
-  @media (max-width:560px) { .filtros .sel { flex:1 1 100%; } }
+  .nav-mobile { display:none; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .nav-mobile .sel { flex:1 1 100%; min-height:46px; font-size:15px; font-weight:500; }
+  @media (max-width:560px) { .nav-desktop { display:none; } .nav-mobile { display:flex; } }
   button { font-family:inherit; cursor:pointer; }
   :focus-visible { outline:3px solid #f28b91; outline-offset:2px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:14px; }
@@ -143,10 +144,16 @@
   </section>
 
   <!-- ===== TIENDA ===== -->
-  <div class="filtros">
+  <div class="nav-desktop">
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
+    <nav class="ocasiones" id="ocasiones" aria-label="Filtro"></nav>
+  </div>
+  <div class="nav-mobile">
     <select id="fSeccion" class="sel" aria-label="Sección"></select>
     <select id="fTipo" class="sel" aria-label="Tipo de flor"></select>
     <select id="fOcasion" class="sel" aria-label="Ocasión"></select>
+  </div>
+  <div class="filtros">
     <input id="buscar" type="search" placeholder="Buscar en el catálogo...">
     <select id="orden" aria-label="Ordenar">
       <option value="pred">Ordenar: predeterminado</option>
@@ -231,7 +238,7 @@ const OCASIONES = [
   { id:"escritorio",    nombre:"Para su escritorio", icono:"🪴", tipo:"ocasion" },
   { id:"condolencias",  nombre:"Condolencias",       icono:"🕊️", tipo:"ocasion" }
 ];
-let filtro = { sec:"", tipo:"", oc:"" };
+let filtro = { sec:"", tipo:"", oc:"", group:"" };
 const EJEMPLO = [];
 let CATALOGO = [];
 const carrito = new Map();
@@ -342,7 +349,7 @@ const nombreSeccion = id => SECCIONES.find(x => x.id === id)?.nombre || "";
 const tipoOcasion = id => OCASIONES.find(o => o.id === id)?.tipo;
 const nombreTipo = id => TIPOS.find(t => t.id === id)?.nombre || id;
 const nombreOcasion = id => OCASIONES.find(o => o.id === id)?.nombre || id;
-function pintarFiltros() {
+function pintarSelects() {
   const opt = (val, label, sel) => `<option value="${val}" ${sel ? "selected" : ""}>${label}</option>`;
   $("fSeccion").innerHTML = opt("", "📋 Todas las secciones", !filtro.sec) +
     SECCIONES.map(x => opt(x.id, `${x.icono} ${x.nombre}`, filtro.sec === x.id)).join("");
@@ -350,6 +357,18 @@ function pintarFiltros() {
     TIPOS.map(t => opt(t.id, `${t.icono} ${t.nombre}`, filtro.tipo === t.id)).join("");
   $("fOcasion").innerHTML = opt("", "🎁 Ocasión: todas", !filtro.oc) +
     OCASIONES.filter(o => o.tipo === "ocasion").map(o => opt(o.id, `${o.icono} ${o.nombre}`, filtro.oc === o.id)).join("");
+}
+function pintarTabs() {
+  const sec = id => SECCIONES.find(x => x.id === id);
+  const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
+  const tabs = [{ id:"", nombre:"Todo" }, sec("ramos"), sec("arreglos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
+  $("tabs").innerHTML = tabs.map(t => `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.nombre}</button>`).join("");
+  const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
+  $("ocasiones").style.display = sub.length ? "" : "none";
+  const val = filtro.group === "tipo" ? filtro.tipo : filtro.group === "ocasion" ? filtro.oc : "";
+  const et = filtro.group === "tipo" ? "Todas las flores" : "Todas";
+  $("ocasiones").innerHTML = `<button class="chip" data-chip="" aria-pressed="${!val}">${et}</button>` +
+    sub.map(o => `<button class="chip" data-chip="${o.id}" aria-pressed="${val === o.id}">${o.icono} ${o.nombre}</button>`).join("");
 }
 function pintarChecks(selT = [], selO = []) {
   $("checksTipo").innerHTML = TIPOS.map(t =>
@@ -438,7 +457,7 @@ function pintarAdmin() {
           <button class="peligro" data-borrar="${p.id}">Eliminar</button></td>
     </tr>`).join("") || '<tr><td colspan="5">No hay productos. Agrega uno o importa un archivo.</td></tr>';
 }
-function refrescar() { pintarFiltros(); pintarGrid(); pintarCarrito(); pintarAdmin(); }
+function refrescar() { pintarTabs(); pintarSelects(); pintarGrid(); pintarCarrito(); pintarAdmin(); }
 function avisar(id, html) { const a = $(id); a.style.display = "block"; a.innerHTML = html; }
 
 function modoEdicion(p) {
@@ -527,6 +546,16 @@ $("restaurar").onclick = () => {
 /* Clics generales */
 document.addEventListener("click", e => {
   const d = e.target.dataset; if (!d) return;
+  if (d.tab !== undefined) {
+    filtro = d.tab === "tipos" ? { sec:"", tipo:filtro.tipo, oc:"", group:"tipo" }
+           : d.tab === "ocasiones" ? { sec:"", tipo:"", oc:filtro.oc, group:"ocasion" }
+           : { sec:d.tab, tipo:"", oc:"", group:"" };
+    pintarTabs(); pintarSelects(); pintarGrid();
+  }
+  if (d.chip !== undefined && e.target.classList.contains("chip")) {
+    if (filtro.group === "tipo") filtro.tipo = d.chip; else if (filtro.group === "ocasion") filtro.oc = d.chip;
+    pintarTabs(); pintarGrid();
+  }
   if (d.add) cambiar(+d.add, 1);
   if (d.mas) cambiar(+d.mas, 1);
   if (d.menos) cambiar(+d.menos, -1);
@@ -581,9 +610,9 @@ $("form").addEventListener("submit", e => {
 });
 
 ["buscar","orden"].forEach(id => $(id).addEventListener("input", pintarGrid));
-$("fSeccion").addEventListener("change", e => { filtro.sec = e.target.value; pintarGrid(); });
-$("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pintarGrid(); });
-$("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarGrid(); });
+$("fSeccion").addEventListener("change", e => { filtro.sec = e.target.value; filtro.group = ""; pintarTabs(); pintarGrid(); });
+$("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pintarTabs(); pintarGrid(); });
+$("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarTabs(); pintarGrid(); });
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
 document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
 pintarSecciones(); pintarChecks(); cargar().then(refrescar);
