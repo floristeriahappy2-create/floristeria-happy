@@ -249,7 +249,14 @@ const CLAVE_ADMIN = "happy2026";          // solo para el modo sin nube
    Pega aquí la configuración de tu proyecto Firebase para que los cambios
    del administrador se vean al instante para todos los clientes.
    Si lo dejas en null, la página funciona en modo local (solo este navegador). */
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA4pbji4MmIxPdQ--bLhTPbgbGvuf9mhHY",
+  authDomain: "floristeria-happy.firebaseapp.com",
+  projectId: "floristeria-happy",
+  storageBucket: "floristeria-happy.firebasestorage.app",
+  messagingSenderId: "1052160871066",
+  appId: "1:1052160871066:web:aa1b65ecc4f1b26ddf2d23"
+};
 /* Ejemplo:
 const FIREBASE_CONFIG = {
   apiKey: "AIza...",
@@ -516,8 +523,8 @@ function pintarGrid() {
 }
 function cambiar(id, delta) {
   const p = CATALOGO.find(x => x.id === id); if (!p) return;
+  if (delta > 0 && p.stock <= 0) { alert(p.nombre + " está agotado"); return; }
   const n = (carrito.get(id) || 0) + delta;
-  if (n > p.stock) { alert("No hay más stock de " + p.nombre); return; }
   n <= 0 ? carrito.delete(id) : carrito.set(id, n);
   pintarCarrito();
 }
