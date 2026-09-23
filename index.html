@@ -21,7 +21,9 @@
   main { max-width:1100px; margin:0 auto; padding:16px; }
   .filtros { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   input, select, textarea { padding:10px 12px; border:1px solid var(--borde); border-radius:8px; font-size:15px; font-family:inherit; background:var(--card); color:var(--texto); max-width:100%; }
-  .filtros input { flex:1; min-width:180px; }
+  .filtros input { flex:1; min-width:160px; }
+  .filtros .sel { flex:1 1 46%; min-width:150px; min-height:46px; font-size:15px; font-weight:500; }
+  @media (max-width:560px) { .filtros .sel { flex:1 1 100%; } }
   button { font-family:inherit; cursor:pointer; }
   :focus-visible { outline:3px solid #f28b91; outline-offset:2px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:14px; }
@@ -141,9 +143,10 @@
   </section>
 
   <!-- ===== TIENDA ===== -->
-  <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
-  <nav class="ocasiones" id="ocasiones" aria-label="Ocasiones"></nav>
   <div class="filtros">
+    <select id="fSeccion" class="sel" aria-label="Sección"></select>
+    <select id="fTipo" class="sel" aria-label="Tipo de flor"></select>
+    <select id="fOcasion" class="sel" aria-label="Ocasión"></select>
     <input id="buscar" type="search" placeholder="Buscar en el catálogo...">
     <select id="orden" aria-label="Ordenar">
       <option value="pred">Ordenar: predeterminado</option>
@@ -228,7 +231,7 @@ const OCASIONES = [
   { id:"escritorio",    nombre:"Para su escritorio", icono:"🪴", tipo:"ocasion" },
   { id:"condolencias",  nombre:"Condolencias",       icono:"🕊️", tipo:"ocasion" }
 ];
-let filtro = { sec:"", grupo:"", val:"" };
+let filtro = { sec:"", tipo:"", oc:"" };
 const EJEMPLO = [];
 let CATALOGO = [];
 const carrito = new Map();
@@ -339,16 +342,14 @@ const nombreSeccion = id => SECCIONES.find(x => x.id === id)?.nombre || "";
 const tipoOcasion = id => OCASIONES.find(o => o.id === id)?.tipo;
 const nombreTipo = id => TIPOS.find(t => t.id === id)?.nombre || id;
 const nombreOcasion = id => OCASIONES.find(o => o.id === id)?.nombre || id;
-function pintarNav() {
-  const activo = filtro.sec || (filtro.grupo === "tipo" ? "tipos" : filtro.grupo === "ocasion" ? "ocasiones" : "");
-  const sec = id => SECCIONES.find(x => x.id === id);
-  const tabs = [{ id:"", nombre:"Todo" }, sec("ramos"), sec("arreglos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
-  $("tabs").innerHTML = tabs.map(t => `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.nombre}</button>`).join("");
-  const sub = filtro.grupo === "tipo" ? TIPOS : filtro.grupo === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
-  $("ocasiones").style.display = sub.length ? "" : "none";
-  const etiqueta = filtro.grupo === "tipo" ? "Todas las flores" : "Todas";
-  $("ocasiones").innerHTML = `<button class="chip" data-val="" aria-pressed="${!filtro.val}">${etiqueta}</button>` +
-    sub.map(o => `<button class="chip" data-val="${o.id}" aria-pressed="${filtro.val === o.id}">${o.icono} ${o.nombre}</button>`).join("");
+function pintarFiltros() {
+  const opt = (val, label, sel) => `<option value="${val}" ${sel ? "selected" : ""}>${label}</option>`;
+  $("fSeccion").innerHTML = opt("", "📋 Todas las secciones", !filtro.sec) +
+    SECCIONES.map(x => opt(x.id, `${x.icono} ${x.nombre}`, filtro.sec === x.id)).join("");
+  $("fTipo").innerHTML = opt("", "🌸 Tipo de flor: todas", !filtro.tipo) +
+    TIPOS.map(t => opt(t.id, `${t.icono} ${t.nombre}`, filtro.tipo === t.id)).join("");
+  $("fOcasion").innerHTML = opt("", "🎁 Ocasión: todas", !filtro.oc) +
+    OCASIONES.filter(o => o.tipo === "ocasion").map(o => opt(o.id, `${o.icono} ${o.nombre}`, filtro.oc === o.id)).join("");
 }
 function pintarChecks(selT = [], selO = []) {
   $("checksTipo").innerHTML = TIPOS.map(t =>
@@ -384,8 +385,8 @@ function pintarGrid() {
   const q = $("buscar").value.toLowerCase();
   const lista = CATALOGO.filter(p => p.nombre.toLowerCase().includes(q)
     && (!filtro.sec || p.categoria === filtro.sec)
-    && (filtro.grupo !== "tipo" || (filtro.val ? p.tipos.includes(filtro.val) : p.tipos.length))
-    && (filtro.grupo !== "ocasion" || (filtro.val ? p.ocasiones.includes(filtro.val) : p.ocasiones.length)));
+    && (!filtro.tipo || p.tipos.includes(filtro.tipo))
+    && (!filtro.oc || p.ocasiones.includes(filtro.oc)));
   const orden = $("orden").value;
   if (orden === "precio-asc") lista.sort((a,b) => a.precio - b.precio);
   else if (orden === "precio-desc") lista.sort((a,b) => b.precio - a.precio);
@@ -402,7 +403,7 @@ function pintarGrid() {
         <div class="precio">S/ ${soles(p.precio)}</div>
         <button data-add="${p.id}" ${p.stock ? "" : "disabled"}>${p.stock ? "Agregar" : "Sin stock"}</button>
       </div>
-    </article>`).join("") || `<p>Todavía no hay productos ${filtro.val ? "de " + esc(filtro.grupo === "tipo" ? nombreTipo(filtro.val) : nombreOcasion(filtro.val)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
+    </article>`).join("") || `<p>Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
 }
 function cambiar(id, delta) {
   const p = CATALOGO.find(x => x.id === id); if (!p) return;
@@ -437,7 +438,7 @@ function pintarAdmin() {
           <button class="peligro" data-borrar="${p.id}">Eliminar</button></td>
     </tr>`).join("") || '<tr><td colspan="5">No hay productos. Agrega uno o importa un archivo.</td></tr>';
 }
-function refrescar() { pintarNav(); pintarGrid(); pintarCarrito(); pintarAdmin(); }
+function refrescar() { pintarFiltros(); pintarGrid(); pintarCarrito(); pintarAdmin(); }
 function avisar(id, html) { const a = $(id); a.style.display = "block"; a.innerHTML = html; }
 
 function modoEdicion(p) {
@@ -526,11 +527,6 @@ $("restaurar").onclick = () => {
 /* Clics generales */
 document.addEventListener("click", e => {
   const d = e.target.dataset; if (!d) return;
-  if (d.tab !== undefined) {
-    filtro = d.tab === "tipos" ? { sec:"", grupo:"tipo", val:"" } : d.tab === "ocasiones" ? { sec:"", grupo:"ocasion", val:"" } : { sec:d.tab, grupo:"", val:"" };
-    pintarNav(); pintarGrid();
-  }
-  if (d.val !== undefined && e.target.classList.contains("chip")) { filtro.val = d.val; pintarNav(); pintarGrid(); }
   if (d.add) cambiar(+d.add, 1);
   if (d.mas) cambiar(+d.mas, 1);
   if (d.menos) cambiar(+d.menos, -1);
@@ -585,6 +581,9 @@ $("form").addEventListener("submit", e => {
 });
 
 ["buscar","orden"].forEach(id => $(id).addEventListener("input", pintarGrid));
+$("fSeccion").addEventListener("change", e => { filtro.sec = e.target.value; pintarGrid(); });
+$("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pintarGrid(); });
+$("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarGrid(); });
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
 document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
 pintarSecciones(); pintarChecks(); cargar().then(refrescar);
