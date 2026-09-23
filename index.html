@@ -271,20 +271,14 @@
 
 <script>
 const WHATSAPP = "51941905462";
-const DATOS_PAGO = `💳 Datos para tu pago:
-• BCP 2908965228048 — Inversiones y Servicios Happy
-• BBVA 001108140225005686 — Karin Jannet Rivera Mori
-• Banco de la Nación 04263088323 — Karin Jannet Rivera Mori
-• Yape / Plin 941905462
-• Tarjeta de crédito: solicita el link (consultar comisión)
-• Desde el extranjero: Western Unión o PayPal (solicitar datos)`;
-const DATOS_PAGO_HTML = `<b>💳 Realiza tu pago a cualquiera de estas cuentas:</b><br>
-<b>BCP</b> 2908965228048 — Inversiones y Servicios Happy<br>
-<b>BBVA</b> 001108140225005686 — Karin Jannet Rivera Mori<br>
-<b>Banco de la Nación</b> 04263088323 — Karin Jannet Rivera Mori<br>
-<b>Yape / Plin</b> 941905462<br>
-<b>Tarjeta de crédito:</b> solicita el link (consultar comisión)<br>
-<b>Desde el extranjero:</b> Western Unión o PayPal<span class="cta">Escríbenos por WhatsApp para solicitar los datos o el link de pago.</span>`;
+const PAGOS = {
+  "Yape / Plin": `<b>💳 Yape / Plin</b><br>941905462 — Inversiones y Servicios Happy`,
+  "Transferencia BCP": `<b>💳 Cuenta BCP</b><br>2908965228048 — Inversiones y Servicios Happy`,
+  "Transferencia BBVA": `<b>💳 Cuenta BBVA</b><br>001108140225005686 — Karin Jannet Rivera Mori`,
+  "Transferencia BN": `<b>💳 Cuenta Banco de la Nación</b><br>04263088323 — Karin Jannet Rivera Mori`,
+  "Tarjeta de crédito (link)": `<b>💳 Tarjeta de crédito</b><br>Te enviamos el link de pago por WhatsApp.<span class="cta">Consulta la comisión al escribirnos.</span>`,
+  "Western Union / PayPal (fuera del país)": `<b>💳 Desde el extranjero</b><br>Western Unión o PayPal.<span class="cta">Escríbenos por WhatsApp para solicitar los datos.</span>`
+};
 const PEDIDOS_URL = "https://script.google.com/macros/s/AKfycbx0_nlp8q124DpjZeFPnybl-mvyHhDQhJDcZ2M6oARZ5pkysDqs8q16xLTBXosd0tCi/exec";  // hoja de pedidos
 const CLAVE_ADMIN = "happy2026";          // solo para el modo sin nube
 
@@ -794,8 +788,8 @@ $("form").addEventListener("submit", e => {
 
 // Datos de pago al elegir forma de pago
 $("pago").addEventListener("change", () => {
-  const info = $("pagoInfo");
-  if ($("pago").value) { info.classList.remove("oculto"); info.innerHTML = DATOS_PAGO_HTML; }
+  const info = $("pagoInfo"), v = $("pago").value;
+  if (v && PAGOS[v]) { info.classList.remove("oculto"); info.innerHTML = PAGOS[v]; }
   else info.classList.add("oculto");
 });
 
