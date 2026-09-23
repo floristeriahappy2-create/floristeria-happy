@@ -119,6 +119,16 @@
 
   #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--rojo); color:#fff; padding:12px 20px; border-radius:26px; font-size:15px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:300; max-width:90%; text-align:center; }
   #toast.ver { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .multi-toggle { flex-direction:row; align-items:center; gap:8px; background:var(--rosado); padding:11px 14px; border-radius:8px; font-weight:600; }
+  .multi-toggle input { width:20px; height:20px; accent-color:var(--rojo); }
+  .entrega-bloque { border:1.5px solid var(--borde); border-radius:10px; padding:12px; margin-bottom:12px; }
+  .entrega-bloque h4 { margin:0 0 10px; color:var(--rojo); font-size:15px; }
+  .entrega-bloque .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:560px){ .entrega-bloque .grid2 { grid-template-columns:1fr; } }
+  .pago-info { background:var(--rosado); border-radius:10px; padding:14px 16px; font-size:14px; line-height:1.7; }
+  .pago-info b { color:var(--rojo); }
+  .pago-info .cta { display:block; margin-top:8px; font-style:italic; color:var(--suave); }
 </style>
 </head>
 <body>
@@ -220,16 +230,30 @@
     <form id="form" class="grid2">
       <label>Quien compra<input name="cliente" required></label>
       <label>Teléfono / WhatsApp<input name="telefono" type="tel" required></label>
-      <label>Quien recibe<input name="destinatario" required></label>
-      <label>Teléfono de quien recibe<input name="tel_destinatario" type="tel"></label>
-      <label class="ancho">Dirección de entrega<input name="direccion" required></label>
-      <label>Distrito<input name="distrito" required></label>
-      <label>Fecha de entrega<input name="fecha" type="date" required></label>
-      <label>Franja horaria<select name="franja"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
-      <label>Método de pago<select name="pago"><option>Yape</option><option>Plin</option><option>Transferencia</option><option>Efectivo contra entrega</option></select></label>
       <label>DNI de quien paga (para el comprobante)<input name="dni" inputmode="numeric" autocomplete="off"></label>
-      <label class="ancho">Mensaje para la tarjeta<textarea name="tarjeta" rows="2"></textarea></label>
-      <button class="primario" type="submit">Enviar pedido por WhatsApp</button>
+
+      <label class="ancho multi-toggle"><input type="checkbox" id="multi"> Enviar a varias direcciones / distintos destinatarios</label>
+
+      <div class="ancho" id="entregaUnica">
+        <div class="grid2">
+          <label>Quien recibe<input name="destinatario"></label>
+          <label>Teléfono de quien recibe<input name="tel_destinatario" type="tel"></label>
+          <label class="ancho">Dirección de entrega<input name="direccion"></label>
+          <label>Distrito<input name="distrito"></label>
+          <label>Fecha de entrega<input name="fecha" type="date"></label>
+          <label>Franja horaria<select name="franja"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
+          <label class="ancho">Mensaje para la tarjeta<textarea name="tarjeta" rows="2"></textarea></label>
+        </div>
+      </div>
+
+      <div class="ancho oculto" id="entregasMulti"></div>
+
+      <label class="ancho">Método de pago
+        <select name="pago" id="pago"><option value="">Elige cómo vas a pagar...</option><option>Yape / Plin</option><option>Transferencia BCP</option><option>Transferencia BBVA</option><option>Transferencia BN</option><option>Tarjeta de crédito (link)</option><option>Western Union / PayPal (fuera del país)</option></select>
+      </label>
+      <div class="ancho pago-info oculto" id="pagoInfo"></div>
+
+      <button class="primario ancho" type="submit">Enviar pedido por WhatsApp</button>
     </form>
     <div class="aviso" id="aviso"></div>
   </section>
@@ -247,6 +271,20 @@
 
 <script>
 const WHATSAPP = "51941905462";
+const DATOS_PAGO = `💳 Datos para tu pago:
+• BCP 2908965228048 — Inversiones y Servicios Happy
+• BBVA 001108140225005686 — Karin Jannet Rivera Mori
+• Banco de la Nación 04263088323 — Karin Jannet Rivera Mori
+• Yape / Plin 941905462
+• Tarjeta de crédito: solicita el link (consultar comisión)
+• Desde el extranjero: Western Unión o PayPal (solicitar datos)`;
+const DATOS_PAGO_HTML = `<b>💳 Realiza tu pago a cualquiera de estas cuentas:</b><br>
+<b>BCP</b> 2908965228048 — Inversiones y Servicios Happy<br>
+<b>BBVA</b> 001108140225005686 — Karin Jannet Rivera Mori<br>
+<b>Banco de la Nación</b> 04263088323 — Karin Jannet Rivera Mori<br>
+<b>Yape / Plin</b> 941905462<br>
+<b>Tarjeta de crédito:</b> solicita el link (consultar comisión)<br>
+<b>Desde el extranjero:</b> Western Unión o PayPal<span class="cta">Escríbenos por WhatsApp para solicitar los datos o el link de pago.</span>`;
 const PEDIDOS_URL = "https://script.google.com/macros/s/AKfycbx0_nlp8q124DpjZeFPnybl-mvyHhDQhJDcZ2M6oARZ5pkysDqs8q16xLTBXosd0tCi/exec";  // hoja de pedidos
 const CLAVE_ADMIN = "happy2026";          // solo para el modo sin nube
 
@@ -550,6 +588,7 @@ function pintarCarrito() {
   });
   $("carrito").innerHTML = filas.join("") || '<tr><td colspan="3">Tu pedido está vacío. Agrega productos del catálogo.</td></tr>';
   $("total").textContent = soles(total);
+  if ($("multi") && $("multi").checked) pintarEntregasMulti();
 }
 
 /* ---------- Administrador ---------- */
@@ -705,31 +744,92 @@ $("formLogin").addEventListener("submit", async e => {
 $("btnSalir").onclick = () => nube && nube.auth.signOut();
 
 /* Pedido por WhatsApp */
+function enviarHoja(fila) {
+  if (!PEDIDOS_URL) return;
+  fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
+}
 $("form").addEventListener("submit", e => {
   e.preventDefault();
   if (!carrito.size) { alert("Agrega al menos un producto"); return; }
-  const d = Object.fromEntries(new FormData(e.target));
+  const f = e.target, el = f.elements, cliente = el.cliente.value.trim(), telefono = el.telefono.value.trim(), dni = el.dni.value.trim(), pago = el.pago.value;
+  if (!cliente || !telefono) { alert("Completa tu nombre y teléfono."); return; }
+  if (!pago) { alert("Elige la forma de pago."); return; }
   const lineas = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return `• ${c} x ${p.nombre} = S/ ${soles(p.precio * c)}`; });
-  const msg = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, `Total: S/ ${$("total").textContent}`, ``,
-    `Compra: ${d.cliente} (${d.telefono})`, `Recibe: ${d.destinatario}${d.tel_destinatario ? " (" + d.tel_destinatario + ")" : ""}`,
-    `Dirección: ${d.direccion}, ${d.distrito}`, `Entrega: ${d.fecha}, ${d.franja}`, `Pago: ${d.pago}`,
-    d.dni ? `DNI: ${d.dni}` : "", d.tarjeta ? `Tarjeta: "${d.tarjeta}"` : ""].filter(Boolean).join("\n");
-  if (PEDIDOS_URL) {
-    const fila = { fecha_pedido: new Date().toLocaleString("es-PE"), mes: new Date().toISOString().slice(0, 7), productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number($("total").textContent), ...d };
-    fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
-  }
-  window.open(`https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg), "_blank");
-  // Descuento automático de stock (solo en modo nube / Firebase)
-  if (nube) {
-    for (const [id, c] of carrito) {
-      col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
+  const total = $("total").textContent;
+  const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7);
+  const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, `Total: S/ ${total}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
+
+  let msg;
+  if ($("multi").checked) {
+    // Una entrega por cada unidad del carrito
+    const u = unidadesCarrito();
+    const bloques = [], filas = [];
+    for (let i = 0; i < u.length; i++) {
+      const p = u[i];
+      const dest = el["dest_" + i].value.trim(), telD = el["tel_" + i].value.trim(), dir = el["dir_" + i].value.trim(),
+            dist = el["dist_" + i].value.trim(), fecha = el["fecha_" + i].value, franja = el["franja_" + i].value, tarjeta = el["tarjeta_" + i].value.trim();
+      if (!dest || !dir || !dist || !fecha) { alert(`Completa los datos de la Entrega ${i + 1}.`); throw "falta"; }
+      bloques.push(`${i + 1}) ${p.nombre} → ${dest}${telD ? " (" + telD + ")" : ""}, ${dir}, ${dist}, ${fecha}, ${franja}${tarjeta ? `, tarjeta: "${tarjeta}"` : ""}`);
+      filas.push({ fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: p.nombre, total: p.precio,
+                   destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
     }
+    msg = [...cab, ``, `ENTREGAS (${u.length}):`, ...bloques].join("\n");
+    filas.forEach(enviarHoja);
+  } else {
+    const dest = el.destinatario.value.trim(), dir = el.direccion.value.trim(), dist = el.distrito.value.trim(), fecha = el.fecha.value;
+    if (!dest || !dir || !dist || !fecha) { alert("Completa los datos de entrega (quien recibe, dirección, distrito y fecha)."); return; }
+    const telD = el.tel_destinatario.value.trim(), franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
+    msg = [...cab, ``, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, `Entrega: ${fecha}, ${franja}`, tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
+    enviarHoja({ fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
+                 destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
   }
-  avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Solo presiona enviar.");
-  carrito.clear(); pintarCarrito(); e.target.reset();
+
+  window.open(`https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg), "_blank");
+  if (nube) { for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {}); }
+  avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
+  carrito.clear(); pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
 });
 
 ["buscar","orden"].forEach(id => $(id).addEventListener("input", pintarGrid));
+
+// Datos de pago al elegir forma de pago
+$("pago").addEventListener("change", () => {
+  const info = $("pagoInfo");
+  if ($("pago").value) { info.classList.remove("oculto"); info.innerHTML = DATOS_PAGO_HTML; }
+  else info.classList.add("oculto");
+});
+
+// Entregas múltiples
+function unidadesCarrito() {
+  const u = [];
+  for (const [id, c] of carrito) { const p = CATALOGO.find(x => x.id === id); for (let i = 0; i < c; i++) u.push(p); }
+  return u;
+}
+function pintarEntregasMulti() {
+  const u = unidadesCarrito();
+  $("entregasMulti").innerHTML = u.length ? u.map((p, i) => `
+    <div class="entrega-bloque">
+      <h4>Entrega ${i + 1} — ${esc(p.nombre)}</h4>
+      <div class="grid2">
+        <label>Quien recibe<input name="dest_${i}" required></label>
+        <label>Teléfono de quien recibe<input name="tel_${i}" type="tel"></label>
+        <label style="grid-column:1/-1">Dirección<input name="dir_${i}" required></label>
+        <label>Distrito<input name="dist_${i}" required></label>
+        <label>Fecha<input name="fecha_${i}" type="date" required></label>
+        <label>Franja horaria<select name="franja_${i}"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
+        <label style="grid-column:1/-1">Mensaje para la tarjeta<textarea name="tarjeta_${i}" rows="2"></textarea></label>
+      </div>
+    </div>`).join("") : "<p>Agrega productos a tu pedido primero.</p>";
+  const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
+  $("entregasMulti").querySelectorAll('[type=date]').forEach(d => d.min = hoy.toISOString().slice(0, 10));
+}
+$("multi").addEventListener("change", () => {
+  const on = $("multi").checked;
+  $("entregaUnica").classList.toggle("oculto", on);
+  $("entregasMulti").classList.toggle("oculto", !on);
+  $("entregaUnica").querySelectorAll("input,select,textarea").forEach(e => e.disabled = on);
+  if (on) pintarEntregasMulti();
+});
 $("fSeccion").addEventListener("change", e => { filtro.sec = e.target.value; filtro.group = ""; pintarTabs(); pintarGrid(); });
 $("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pintarTabs(); pintarGrid(); });
 $("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarTabs(); pintarGrid(); });
