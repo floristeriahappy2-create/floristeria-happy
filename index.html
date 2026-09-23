@@ -116,6 +116,9 @@
   .comp-foto img { width:100%; height:100%; object-fit:cover; }
   .comp-precio { color:var(--rojo); font-weight:600; }
   .mini-add { margin-top:4px; background:var(--card); color:var(--rojo); border:1.5px solid var(--rojo); border-radius:14px; padding:5px 10px; font-size:12px; cursor:pointer; }
+
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--rojo); color:#fff; padding:12px 20px; border-radius:26px; font-size:15px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:300; max-width:90%; text-align:center; }
+  #toast.ver { opacity:1; transform:translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -231,6 +234,8 @@
     <div class="aviso" id="aviso"></div>
   </section>
 </main>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Detalle del producto">
   <div class="modal-caja">
@@ -521,12 +526,18 @@ function pintarGrid() {
     </article>`;
   }).join("") || `<p>Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
 }
+let toastTimer;
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("ver");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("ver"), 2200);
+}
 function cambiar(id, delta) {
   const p = CATALOGO.find(x => x.id === id); if (!p) return;
   if (delta > 0 && p.stock <= 0) { alert(p.nombre + " está agotado"); return; }
   const n = (carrito.get(id) || 0) + delta;
   n <= 0 ? carrito.delete(id) : carrito.set(id, n);
   pintarCarrito();
+  if (delta > 0) toast("✓ " + p.nombre + " agregado a tu pedido");
 }
 function pintarCarrito() {
   let total = 0;
