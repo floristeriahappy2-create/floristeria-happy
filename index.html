@@ -129,6 +129,34 @@
   .pago-info { background:var(--rosado); border-radius:10px; padding:14px 16px; font-size:14px; line-height:1.7; }
   .pago-info b { color:var(--rojo); }
   .pago-info .cta { display:block; margin-top:8px; font-style:italic; color:var(--suave); }
+
+  .admin-tabs { display:flex; gap:6px; border-bottom:2px solid var(--borde); margin-bottom:16px; flex-wrap:wrap; }
+  .atab { background:none; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; padding:10px 14px; font-size:15px; color:var(--suave); cursor:pointer; }
+  .atab[aria-selected="true"] { color:var(--rojo); border-bottom-color:var(--rojo); font-weight:600; }
+  .filtros-ped { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .filtros-ped select { flex:1 1 45%; min-height:44px; font-size:15px; }
+  .ped-card { border:1.5px solid var(--borde); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+  .ped-top { font-size:15px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .ped-estado { color:#fff; font-size:12px; font-weight:700; padding:2px 10px; border-radius:12px; margin-left:auto; }
+  .ped-tel, .ped-items { font-size:13px; color:var(--suave); margin-top:4px; }
+  .ped-items { color:var(--texto); font-weight:500; }
+  .ped-ent { font-size:13px; color:var(--suave); margin-top:3px; padding-left:8px; border-left:2px solid var(--rosado); }
+  .ped-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .ped-b { border:1.5px solid var(--borde); background:var(--card); color:var(--texto); border-radius:16px; padding:6px 12px; font-size:13px; cursor:pointer; }
+  .ped-b.activo { background:var(--rojo); border-color:var(--rojo); color:#fff; font-weight:600; }
+  .kpis { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:8px; }
+  @media (min-width:560px){ .kpis { grid-template-columns:repeat(4,1fr); } }
+  .kpi { background:var(--rosado); border-radius:10px; padding:14px 10px; text-align:center; }
+  .kpi-v { font-size:19px; font-weight:700; color:var(--rojo); }
+  .kpi-t { font-size:12px; color:var(--suave); margin-top:2px; }
+  .top-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--borde); font-size:14px; }
+  .top-pos { background:var(--rojo); color:#fff; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex:0 0 auto; }
+  .top-nom { flex:1; }
+  .top-num { color:var(--suave); font-size:13px; }
+  .barras { display:flex; align-items:flex-end; gap:6px; height:150px; overflow-x:auto; padding-top:8px; }
+  .barra-col { flex:1 1 auto; min-width:26px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .barra { width:70%; background:var(--rojo); border-radius:4px 4px 0 0; min-height:2px; }
+  .barra-col span { font-size:11px; color:var(--suave); margin-top:4px; }
 </style>
 </head>
 <body>
@@ -149,6 +177,12 @@
       <button class="primario" type="submit">Entrar</button>
     </form>
     <div id="zonaAdmin">
+    <div class="admin-tabs">
+      <button type="button" class="atab" data-atab="catalogo" aria-selected="true">📦 Catálogo</button>
+      <button type="button" class="atab" data-atab="pedidos" aria-selected="false">🧾 Pedidos</button>
+      <button type="button" class="atab" data-atab="indicadores" aria-selected="false">📊 Indicadores</button>
+    </div>
+    <div id="tabCatalogo">
     <form id="formProd" class="grid2">
       <input type="hidden" name="id">
       <label>Nombre<input name="nombre" required placeholder="Ramo de 12 rosas"></label>
@@ -156,6 +190,7 @@
       <label>Sección<select name="categoria" id="selSeccion"></select></label>
       <label>Precio (S/)<input name="precio" type="number" step="0.10" min="0" required></label>
       <label>Precio antes (S/) <small style="color:var(--suave)">opcional, descuento</small><input name="precioAntes" type="number" step="0.10" min="0"></label>
+      <label>Costo (S/) <small style="color:var(--suave)">opcional, para utilidad</small><input name="costo" type="number" step="0.10" min="0"></label>
       <label>Stock<input name="stock" type="number" min="0" required value="1"></label>
       <fieldset class="ancho" style="border:1px solid var(--borde);border-radius:8px;padding:10px 12px">
         <legend style="font-size:13px;padding:0 4px">Tipo de flor</legend>
@@ -191,6 +226,29 @@
         <tbody id="listaAdmin"></tbody>
       </table>
     </div>
+    </div><!-- tabCatalogo -->
+
+    <div id="tabPedidos" class="oculto">
+      <h2>Pedidos</h2>
+      <div class="filtros-ped">
+        <select id="fEstado"><option value="">Todos los estados</option><option>Pendiente</option><option>Pagado</option><option>Entregado</option><option>Anulado</option></select>
+        <select id="fPeriodo"><option value="semana">Esta semana</option><option value="mes" selected>Este mes</option><option value="ano">Este año</option><option value="todo">Todo</option></select>
+      </div>
+      <div id="listaPedidos"></div>
+    </div>
+
+    <div id="tabIndicadores" class="oculto">
+      <h2>Indicadores</h2>
+      <div class="filtros-ped">
+        <select id="dPeriodo"><option value="semana">Esta semana</option><option value="mes" selected>Este mes</option><option value="ano">Este año</option><option value="todo">Histórico</option></select>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <h3 class="comp-titulo">Top 5 productos</h3>
+      <div id="topProductos"></div>
+      <h3 class="comp-titulo">Ventas del periodo</h3>
+      <div id="graficoVentas"></div>
+    </div>
+
     <div class="acciones" id="zonaSalir"><button class="secundario oculto" id="btnSalir" type="button">Cerrar sesión</button></div>
     </div>
   </section>
@@ -303,6 +361,7 @@ const FIREBASE_CONFIG = {
 };
 */
 let nube = null;      // { db, auth } cuando Firebase está activo
+let PEDIDOS = [], unsubPedidos = null;
 let usuario = null;   // administrador conectado
 const KEY = "happy_catalogo_v7";
 const SECCIONES = [
@@ -350,7 +409,12 @@ async function iniciarNube() {
     await Promise.all([cargarScript(base + "firebase-firestore-compat.js"), cargarScript(base + "firebase-auth-compat.js")]);
     firebase.initializeApp(FIREBASE_CONFIG);
     nube = { db: firebase.firestore(), auth: firebase.auth() };
-    nube.auth.onAuthStateChanged(u => { usuario = u; pintarAcceso(); });
+    nube.auth.onAuthStateChanged(u => {
+      usuario = u; pintarAcceso();
+      if (u) {
+        unsubPedidos = nube.db.collection("pedidos").onSnapshot(snap => { PEDIDOS = snap.docs.map(x => x.data()); pintarPedidos(); pintarDashboard(); }, e => console.error(e));
+      } else if (unsubPedidos) { unsubPedidos(); unsubPedidos = null; PEDIDOS = []; }
+    });
     let primera = true;
     await new Promise(listo => {
       nube.db.collection("productos").onSnapshot(snap => {
@@ -402,6 +466,7 @@ function normalizar(lista) {
     tipos: leerLista(p.tipos ?? p.Tipos ?? p.tipo ?? p["tipo de flor"] ?? "", TIPOS),
     ocasiones: leerOcasiones(p.ocasiones ?? p.Ocasiones ?? p.ocasion ?? ""),
     precioAntes: Number(String(p.precioAntes ?? p.precio_antes ?? p["precio antes"] ?? 0).replace(",", ".")) || 0,
+    costo: Number(String(p.costo ?? p.Costo ?? 0).replace(",", ".")) || 0,
     fotos: Array.isArray(p.fotos) ? p.fotos.filter(Boolean).map(String) : (String(p.foto ?? p.Foto ?? "").trim() ? [String(p.foto ?? p.Foto ?? "").trim()] : []),
     foto: (Array.isArray(p.fotos) && p.fotos[0]) ? String(p.fotos[0]) : String(p.foto ?? p.Foto ?? "").trim()
   })).filter(p => p.nombre);
@@ -604,7 +669,7 @@ function avisar(id, html) { const a = $(id); a.style.display = "block"; a.innerH
 function modoEdicion(p) {
   const f = $("formProd");
   f.id.value = p ? p.id : ""; f.nombre.value = p ? p.nombre : ""; f.desc.value = p ? (p.desc || "") : ""; f.categoria.value = p ? p.categoria : "ramos";
-  f.precio.value = p ? p.precio : ""; f.precioAntes.value = p ? (p.precioAntes || "") : ""; f.stock.value = p ? p.stock : 1; f.foto.value = "";
+  f.precio.value = p ? p.precio : ""; f.precioAntes.value = p ? (p.precioAntes || "") : ""; f.costo.value = p ? (p.costo || "") : ""; f.stock.value = p ? p.stock : 1; f.foto.value = "";
   pintarChecks(p ? p.tipos : [], p ? p.ocasiones : []);
   $("btnGuardar").textContent = p ? "Guardar cambios" : "Agregar producto";
   $("btnCancelar").classList.toggle("oculto", !p);
@@ -616,7 +681,7 @@ $("formProd").addEventListener("submit", async e => {
   const f = e.target, id = Number(f.id.value);
   let fotos = id ? (CATALOGO.find(p => p.id === id)?.fotos || []) : [];
   if (f.foto.files.length) { try { fotos = []; for (const file of f.foto.files) fotos.push(await leerFoto(file)); } catch (err) { alert(err.message); return; } }
-  const datos = { nombre:f.nombre.value.trim(), desc:f.desc.value.trim(), categoria:f.categoria.value, precio:Number(f.precio.value), precioAntes:Number(f.precioAntes.value)||0, stock:parseInt(f.stock.value)||0, foto:fotos[0]||"", fotos,
+  const datos = { nombre:f.nombre.value.trim(), desc:f.desc.value.trim(), categoria:f.categoria.value, precio:Number(f.precio.value), precioAntes:Number(f.precioAntes.value)||0, costo:Number(f.costo.value)||0, stock:parseInt(f.stock.value)||0, foto:fotos[0]||"", fotos,
     tipos:[...f.querySelectorAll('[name=tipo]:checked')].map(c => c.value),
     ocasiones:[...f.querySelectorAll('[name=oc]:checked')].map(c => c.value) };
   let prod;
@@ -673,7 +738,7 @@ function descargar(nombre, blob) {
 $("expJson").onclick = () => descargar("catalogo.json", new Blob([JSON.stringify(CATALOGO, null, 1)], { type:"application/json" }));
 $("expXlsx").onclick = () => {
   if (typeof XLSX === "undefined") { alert("No cargó el lector de Excel."); return; }
-  const filas = CATALOGO.map(p => ({ nombre:p.nombre, descripcion:p.desc, seccion:nombreSeccion(p.categoria), precio:p.precio, precio_antes:p.precioAntes || "", stock:p.stock, tipos:p.tipos.map(nombreTipo).join(", "), ocasiones:p.ocasiones.map(nombreOcasion).join(", "), foto:p.foto.startsWith("data:") ? "" : p.foto }));
+  const filas = CATALOGO.map(p => ({ nombre:p.nombre, descripcion:p.desc, seccion:nombreSeccion(p.categoria), precio:p.precio, precio_antes:p.precioAntes || "", costo:p.costo || "", stock:p.stock, tipos:p.tipos.map(nombreTipo).join(", "), ocasiones:p.ocasiones.map(nombreOcasion).join(", "), foto:p.foto.startsWith("data:") ? "" : p.foto }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.length ? filas : [{nombre:"",descripcion:"",seccion:"",precio:"",stock:"",tipos:"",ocasiones:"",foto:""}]), "Catalogo");
   XLSX.writeFile(wb, "catalogo_happy.xlsx");
 };
@@ -707,6 +772,15 @@ document.addEventListener("click", e => {
     const p = CATALOGO.find(x => x.id === +d.borrar);
     if (p && confirm(`¿Eliminar "${p.nombre}"?`)) { CATALOGO = CATALOGO.filter(x => x !== p); eliminarRemoto(p.id); refrescar(); }
   }
+  if (d.estado) { const [pid, est] = d.estado.split("|"); cambiarEstado(pid, est); }
+  if (d.atab) {
+    document.querySelectorAll(".atab").forEach(x => x.setAttribute("aria-selected", x.dataset.atab === d.atab));
+    $("tabCatalogo").classList.toggle("oculto", d.atab !== "catalogo");
+    $("tabPedidos").classList.toggle("oculto", d.atab !== "pedidos");
+    $("tabIndicadores").classList.toggle("oculto", d.atab !== "indicadores");
+    if (d.atab === "pedidos") pintarPedidos();
+    if (d.atab === "indicadores") pintarDashboard();
+  }
   const cardV = e.target.closest(".card[data-ver]");
   if (cardV && d.add === undefined) abrirDetalle(+cardV.dataset.ver);
 });
@@ -720,6 +794,55 @@ $("btnAdmin").onclick = () => {
   $("admin").style.display = "block"; $("btnAdmin").textContent = "Cerrar administración";
   pintarAcceso(); $("admin").scrollIntoView({ behavior:"smooth" });
 };
+function cambiarEstado(id, estado) {
+  if (!nube) { alert("Necesitas la nube (Firebase) para gestionar estados."); return; }
+  nube.db.collection("pedidos").doc(id).update({ estado }).catch(e => alert("No se pudo actualizar: " + e.message));
+  if (PEDIDOS_URL) fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ accion: "estado", pedido_id: id, estado }) }).catch(() => {});
+}
+function desdePeriodo(per) {
+  const now = new Date();
+  if (per === "semana") { const d = new Date(now); const dia = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dia); d.setHours(0, 0, 0, 0); return d; }
+  if (per === "mes") return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (per === "ano") return new Date(now.getFullYear(), 0, 1);
+  return new Date(0);
+}
+function pedidosPeriodo(per) { const desde = desdePeriodo(per); return PEDIDOS.filter(p => new Date(p.fechaISO) >= desde); }
+function pintarPedidos() {
+  if (!$("listaPedidos")) return;
+  const est = $("fEstado").value, per = $("fPeriodo").value;
+  const lista = pedidosPeriodo(per).filter(p => !est || (p.estado || "Pendiente") === est).sort((a, b) => new Date(b.fechaISO) - new Date(a.fechaISO));
+  const col = { Pendiente: "#d39e00", Pagado: "#2e7d32", Entregado: "#1565c0", Anulado: "#b71c1c" };
+  $("listaPedidos").innerHTML = lista.length ? lista.map(p => {
+    const e = p.estado || "Pendiente";
+    const its = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
+    const ent = (p.entregas || []).map((x, i) => `<div class="ped-ent">${p.entregas.length > 1 ? (i + 1) + ") " : ""}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}${x.tarjeta ? ` · "${esc(x.tarjeta)}"` : ""}</div>`).join("");
+    return `<div class="ped-card">
+      <div class="ped-top"><b>${esc(p.cliente || "")}</b> · ${esc(p.fecha || "")}<span class="ped-estado" style="background:${col[e]}">${e}</span></div>
+      <div class="ped-tel">${esc(p.telefono || "")} · Pago: ${esc(p.pago || "")} · Total: S/ ${soles(p.total || 0)}${p.dni ? " · DNI: " + esc(p.dni) : ""}</div>
+      <div class="ped-items">${its}</div>${ent}
+      <div class="ped-btns">${["Pendiente", "Pagado", "Entregado", "Anulado"].map(x => `<button class="ped-b ${x === e ? "activo" : ""}" data-estado="${p.id}|${x}">${x}</button>`).join("")}</div>
+    </div>`;
+  }).join("") : "<p>No hay pedidos en este periodo.</p>";
+}
+function pintarDashboard() {
+  if (!$("kpis")) return;
+  const per = $("dPeriodo").value;
+  const lista = pedidosPeriodo(per).filter(p => (p.estado || "Pendiente") !== "Anulado");
+  const ventas = lista.reduce((s, p) => s + (p.total || 0), 0), nped = lista.length, ticket = nped ? ventas / nped : 0;
+  let utilidad = 0, hayCosto = false; const acum = {};
+  for (const p of lista) for (const i of (p.items || [])) {
+    const rev = i.precio * i.cantidad; if (i.costo) hayCosto = true; utilidad += rev - (i.costo || 0) * i.cantidad;
+    (acum[i.producto] = acum[i.producto] || { u: 0, v: 0 }); acum[i.producto].u += i.cantidad; acum[i.producto].v += rev;
+  }
+  const kpi = (t, v) => `<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-t">${t}</div></div>`;
+  $("kpis").innerHTML = kpi("Ventas", "S/ " + soles(ventas)) + kpi("Pedidos", nped) + kpi("Ticket prom.", "S/ " + soles(ticket)) + kpi("Utilidad", hayCosto ? "S/ " + soles(utilidad) : "—");
+  const top = Object.entries(acum).sort((a, b) => b[1].u - a[1].u).slice(0, 5);
+  $("topProductos").innerHTML = top.length ? top.map(([n, d], i) => `<div class="top-row"><span class="top-pos">${i + 1}</span><span class="top-nom">${esc(n)}</span><span class="top-num">${d.u} u · S/ ${soles(d.v)}</span></div>`).join("") : "<p>Sin ventas en el periodo.</p>";
+  const porMes = (per === "ano" || per === "todo"), g = {};
+  for (const p of lista) { const dt = new Date(p.fechaISO); const k = porMes ? dt.toLocaleDateString("es-PE", { month: "short" }) : "" + dt.getDate(); g[k] = (g[k] || 0) + (p.total || 0); }
+  const ent = Object.entries(g), max = Math.max(1, ...ent.map(e => e[1]));
+  $("graficoVentas").innerHTML = ent.length ? `<div class="barras">${ent.map(([k, v]) => `<div class="barra-col"><div class="barra" style="height:${Math.round(v / max * 100)}%" title="S/ ${soles(v)}"></div><span>${esc(k)}</span></div>`).join("")}</div>` : "<p>Sin datos en el periodo.</p>";
+}
 function pintarAcceso() {
   const dentro = !nube || !!usuario;
   $("formLogin").classList.toggle("oculto", dentro);
@@ -750,7 +873,10 @@ $("form").addEventListener("submit", e => {
   if (!pago) { alert("Elige la forma de pago."); return; }
   const lineas = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return `• ${c} x ${p.nombre} = S/ ${soles(p.precio * c)}`; });
   const total = $("total").textContent;
-  const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7);
+  const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7), fechaISO = new Date().toISOString();
+  const pedidoId = "P" + Date.now();
+  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0 }; });
+  const entregas = [];
   const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, `Total: S/ ${total}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
 
   let msg;
@@ -764,8 +890,9 @@ $("form").addEventListener("submit", e => {
             dist = el["dist_" + i].value.trim(), fecha = el["fecha_" + i].value, franja = el["franja_" + i].value, tarjeta = el["tarjeta_" + i].value.trim();
       if (!dest || !dir || !dist || !fecha) { alert(`Completa los datos de la Entrega ${i + 1}.`); throw "falta"; }
       bloques.push(`${i + 1}) ${p.nombre} → ${dest}${telD ? " (" + telD + ")" : ""}, ${dir}, ${dist}, ${fecha}, ${franja}${tarjeta ? `, tarjeta: "${tarjeta}"` : ""}`);
-      filas.push({ fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: p.nombre, total: p.precio,
+      filas.push({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: p.nombre, total: p.precio,
                    destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
+      entregas.push({ producto: p.nombre, destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
     }
     msg = [...cab, ``, `ENTREGAS (${u.length}):`, ...bloques].join("\n");
     filas.forEach(enviarHoja);
@@ -774,10 +901,14 @@ $("form").addEventListener("submit", e => {
     if (!dest || !dir || !dist || !fecha) { alert("Completa los datos de entrega (quien recibe, dirección, distrito y fecha)."); return; }
     const telD = el.tel_destinatario.value.trim(), franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
     msg = [...cab, ``, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, `Entrega: ${fecha}, ${franja}`, tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
-    enviarHoja({ fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
+    enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
                  destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
+    entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
   }
 
+  if (nube) {
+    nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas }).catch(() => {});
+  }
   window.open(`https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg), "_blank");
   if (nube) { for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {}); }
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
@@ -825,6 +956,9 @@ $("multi").addEventListener("change", () => {
   if (on) pintarEntregasMulti();
 });
 $("fSeccion").addEventListener("change", e => { filtro.sec = e.target.value; filtro.group = ""; pintarTabs(); pintarGrid(); });
+$("fEstado").addEventListener("change", pintarPedidos);
+$("fPeriodo").addEventListener("change", pintarPedidos);
+$("dPeriodo").addEventListener("change", pintarDashboard);
 $("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pintarTabs(); pintarGrid(); });
 $("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarTabs(); pintarGrid(); });
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
