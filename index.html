@@ -57,7 +57,7 @@
   @media (max-width:560px) { .nav-desktop { display:none; } .nav-mobile { display:flex; } }
   button { font-family:inherit; cursor:pointer; }
   :focus-visible { outline:3px solid #f28b91; outline-offset:2px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:14px; scroll-margin-top:16px; }
   .card { background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.12); display:flex; flex-direction:column; }
   .foto { height:150px; display:flex; align-items:center; justify-content:center; font-size:56px; background:var(--rosado); }
   .foto img { width:100%; height:100%; object-fit:cover; }
@@ -245,10 +245,6 @@
   <div class="hero-content">
     <h2 id="heroTitulo">Entregamos sentimientos</h2>
     <p id="heroSub">Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.</p>
-    <div class="hero-cta">
-      <button class="hero-btn" data-herosec="ramos">Ver ramos</button>
-      <button class="hero-btn" data-herosec="arreglos">Ver arreglos florales</button>
-    </div>
   </div>
 </section>
 <section class="features">
@@ -1220,7 +1216,13 @@ $("form").addEventListener("submit", e => {
   carrito.clear(); pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
 });
 
-["buscar","orden"].forEach(id => $(id).addEventListener("input", pintarGrid));
+$("orden").addEventListener("input", pintarGrid);
+$("buscar").addEventListener("input", () => {
+  const q = $("buscar").value.trim();
+  pintarGrid();
+  if (q && !$("buscar").dataset.scr) { $("buscar").dataset.scr = "1"; const g = $("grid"); if (g) g.scrollIntoView({ behavior: "smooth", block: "start" }); }
+  if (!q) delete $("buscar").dataset.scr;
+});
 
 // Datos de pago al elegir forma de pago
 $("pago").addEventListener("change", () => {
