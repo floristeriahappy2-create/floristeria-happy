@@ -949,7 +949,7 @@ function datosWhatsApp(id) {
     "Dirección: " + (e.direccion || "") + (e.distrito ? ", " + e.distrito : "")
   ].filter(Boolean).join("\n")).join("\n\n");
   const full = "📦 Pedido — Floristería Happy\nCliente: " + (p.cliente || "") + " (" + (p.telefono || "") + ")\n\n" + txt;
-  window.open("https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(full), "_blank");
+  window.open("https://wa.me/?text=" + encodeURIComponent(full), "_blank");
 }
 function cambiarEstado(id, estado) {
   if (!nube) { alert("Necesitas la nube (Firebase) para gestionar estados."); return; }
