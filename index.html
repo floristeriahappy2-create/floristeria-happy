@@ -319,7 +319,7 @@
   <div class="grid" id="grid"></div>
 
   <section class="panel">
-    <h2>Tu pedido</h2>
+    <h2 id="miPedido">Tu pedido</h2>
     <div class="tabla"><table>
       <thead><tr><th>Producto</th><th>Cant.</th><th>Subtotal</th></tr></thead>
       <tbody id="carrito"></tbody>
@@ -661,7 +661,7 @@ function abrirDetalle(id) {
       ${p.stock ? "" : '<div class="agot-det">Agotado</div>'}
       ${p.desc ? `<p class="desc-det">${esc(p.desc)}</p>` : ""}
       <div class="add-row"><button class="btn-add" data-add="${p.id}" ${p.stock ? "" : "disabled"}>${p.stock ? "Agregar al pedido" : "Agotado"}</button></div>
-      ${comps.length ? `<h3 class="comp-titulo">Complementa tu ramo</h3>
+      ${comps.length ? `<h3 class="comp-titulo">Complementa tu pedido</h3>
       <div class="complementos-grid">${comps.map(c => `
         <div class="comp">
           <div class="comp-foto">${c.foto ? `<img src="${esc(c.foto)}" alt="${esc(c.nombre)}">` : "🎁"}</div>
@@ -710,7 +710,12 @@ function cambiar(id, delta) {
   const n = (carrito.get(id) || 0) + delta;
   n <= 0 ? carrito.delete(id) : carrito.set(id, n);
   pintarCarrito();
-  if (delta > 0) toast("✓ " + p.nombre + " agregado a tu pedido");
+  if (delta > 0) {
+    toast("✓ " + p.nombre + " agregado a tu pedido");
+    cerrarDetalle();
+    const mp = document.getElementById("miPedido");
+    if (mp) setTimeout(() => mp.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+  }
 }
 function pintarCarrito() {
   let total = 0;
@@ -896,12 +901,25 @@ function deadlineEntrega(e) { if (!e || !e.fecha) return null; const [y, m, d] =
 function deadlinePedido(p) { const ds = (p.entregas || []).map(deadlineEntrega).filter(Boolean).map(x => x.getTime()); return ds.length ? new Date(Math.min(...ds)) : null; }
 function urgencia(dl) {
   if (!dl) return { clase: "", txt: "" };
-  const min = Math.round((dl.getTime() - Date.now()) / 60000);
-  if (min < 0) return { clase: "venc", txt: "⚠️ VENCIDO" };
-  if (min <= 120) return { clase: "urg", txt: "⏰ " + (min >= 60 ? Math.floor(min / 60) + "h " + (min % 60) + "m" : min + " min") };
+  const seg = Math.floor((dl.getTime() - Date.now()) / 1000);
+  if (seg < 0) return { clase: "venc", txt: "⚠️ VENCIDO" };
+  if (seg <= 7200) {
+    const hh = Math.floor(seg / 3600), mm = Math.floor((seg % 3600) / 60), ss = seg % 60;
+    const p2 = n => (n < 10 ? "0" : "") + n;
+    return { clase: "urg", txt: "⏰ " + (hh ? hh + "h " : "") + p2(mm) + "m " + p2(ss) + "s" };
+  }
   const finHoy = new Date(); finHoy.setHours(23, 59, 59, 0);
   if (dl <= finHoy) return { clase: "hoy", txt: "Hoy" };
   return { clase: "", txt: "" };
+}
+function tickMonitor() {
+  if (!monitorAbierto) return;
+  document.querySelectorAll("#monGrid .mon-card").forEach(card => {
+    const b = card.querySelector(".mon-urg"); if (!b || !b.dataset.dl) return;
+    const u = urgencia(new Date(+b.dataset.dl));
+    b.textContent = u.txt; b.style.display = u.txt ? "" : "none";
+    ["urg", "venc", "hoy"].forEach(c => { if (c === u.clase) { if (!card.classList.contains(c)) card.classList.add(c); if (!b.classList.contains(c)) b.classList.add(c); } else { card.classList.remove(c); b.classList.remove(c); } });
+  });
 }
 function pintarMonitor(idNuevo) {
   if (!$("monGrid")) return;
@@ -916,7 +934,7 @@ function pintarMonitor(idNuevo) {
     const prod = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
     const ent = (p.entregas || []).map((x, i) => `<div class="mon-ent">${p.entregas.length > 1 ? "📍" + (i + 1) + " " : "📍 "}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}</div>`).join("");
     return `<div class="mon-card ${u.clase} ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
-      <h3>${esc(p.cliente || "")} ${u.txt ? `<span class="mon-urg ${u.clase}">${u.txt}</span>` : ""}</h3>
+      <h3>${esc(p.cliente || "")} <span class="mon-urg ${u.clase}" data-dl="${dl ? dl.getTime() : ''}" style="${u.txt ? '' : 'display:none'}">${u.txt}</span></h3>
       <div class="mon-hora">${esc(p.fecha || "")} · ${esc(p.telefono || "")}</div>
       <div class="mon-prod">${prod}</div>${ent}
       <span class="mon-badge" style="background:${col[e]}">${estLabel(e)} · S/ ${soles(p.total || 0)}</span>
@@ -1028,9 +1046,9 @@ $("formLogin").addEventListener("submit", async e => {
   catch { alert("Correo o contraseña incorrectos."); }
 });
 $("btnSalir").onclick = () => nube && nube.auth.signOut();
-let monInterval = null;
-$("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.add("abierto"); if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); else beep(); pintarMonitor(); clearInterval(monInterval); monInterval = setInterval(() => monitorAbierto && pintarMonitor(), 60000); };
-$("monSalir").onclick = () => { monitorAbierto = false; clearInterval(monInterval); $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
+let monInterval = null, monTick = null;
+$("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.add("abierto"); if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); else beep(); pintarMonitor(); clearInterval(monInterval); clearInterval(monTick); monInterval = setInterval(() => monitorAbierto && pintarMonitor(), 60000); monTick = setInterval(tickMonitor, 1000); };
+$("monSalir").onclick = () => { monitorAbierto = false; clearInterval(monInterval); clearInterval(monTick); $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
 $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenElement) m.requestFullscreen && m.requestFullscreen(); else document.exitFullscreen(); };
 
 /* Pedido por WhatsApp */
