@@ -177,6 +177,17 @@
   .mon-vacio { grid-column:1/-1; text-align:center; color:#8a7d81; font-size:20px; padding:60px 0; }
 
   .aviso-cupo { display:none; color:var(--rojo); font-size:13px; font-weight:600; background:var(--rosado); border-radius:8px; padding:8px 12px; }
+
+  #printArea { display:none; }
+  .tag { border:1px dashed #999; border-radius:8px; padding:16px 18px; margin:0 auto 14px; max-width:420px; font-size:14px; color:#000; }
+  .tag-h { font-weight:700; color:#c2272f; font-size:17px; margin-bottom:10px; text-align:center; }
+  .tag-row { margin:4px 0; }
+  .tag-msg { margin:10px 0; font-style:italic; text-align:center; border-top:1px dashed #bbb; border-bottom:1px dashed #bbb; padding:8px 0; font-size:15px; }
+  .tag-solo-msg { text-align:center; padding:30px 20px; }
+  .tag-para { font-size:15px; color:#555; margin-bottom:16px; }
+  .msg-grande { font-size:22px; font-style:italic; line-height:1.5; color:#000; margin:10px 0 20px; }
+  .tag-firma { font-size:14px; color:#c2272f; font-weight:600; }
+  @media print { body > *:not(#printArea) { display:none !important; } #printArea { display:block !important; } .tag { page-break-after:always; } }
 </style>
 </head>
 <body>
@@ -339,6 +350,7 @@
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="printArea"></div>
 
 <div id="monitor">
   <div class="mon-top">
@@ -823,6 +835,9 @@ document.addEventListener("click", e => {
     if (p && confirm(`¿Eliminar "${p.nombre}"?`)) { CATALOGO = CATALOGO.filter(x => x !== p); eliminarRemoto(p.id); refrescar(); }
   }
   if (d.estado) { const [pid, est] = d.estado.split("|"); cambiarEstado(pid, est); }
+  if (d.imprmsg) imprimirMensaje(d.imprmsg);
+  if (d.imprdatos) imprimirDatos(d.imprdatos);
+  if (d.datoswa) datosWhatsApp(d.datoswa);
   if (d.atab) {
     document.querySelectorAll(".atab").forEach(x => x.setAttribute("aria-selected", x.dataset.atab === d.atab));
     $("tabCatalogo").classList.toggle("oculto", d.atab !== "catalogo");
@@ -880,6 +895,46 @@ function pintarMonitor(idNuevo) {
     </div>`;
   }).join("") : `<div class="mon-vacio">Sin pedidos pendientes por ahora ✨</div>`;
 }
+function prodDe(p, e) { return e.producto || (p.items || []).map(i => i.cantidad + "× " + i.producto).join(", "); }
+function imprimirDatos(id) {
+  const p = PEDIDOS.find(x => x.id === id); if (!p) return;
+  const ents = (p.entregas && p.entregas.length) ? p.entregas : [{}];
+  $("printArea").innerHTML = ents.map(e => `
+    <div class="tag">
+      <div class="tag-h">🌹 Floristería Happy</div>
+      <div class="tag-row"><b>Producto:</b> ${esc(prodDe(p, e))}</div>
+      <div class="tag-row"><b>Fecha:</b> ${esc(e.fecha || "")} &nbsp; <b>Franja:</b> ${esc(e.franja || "")}</div>
+      <div class="tag-row"><b>Destinatario:</b> ${esc(e.destinatario || "")}${e.tel_destinatario ? " · Tel: " + esc(e.tel_destinatario) : ""}</div>
+      <div class="tag-row"><b>Dirección:</b> ${esc(e.direccion || "")}${e.distrito ? ", " + esc(e.distrito) : ""}</div>
+      <div class="tag-row"><b>Cliente:</b> ${esc(p.cliente || "")} · Tel: ${esc(p.telefono || "")}</div>
+    </div>`).join("");
+  window.print();
+}
+function imprimirMensaje(id) {
+  const p = PEDIDOS.find(x => x.id === id); if (!p) return;
+  const ents = (p.entregas || []).filter(e => e.tarjeta);
+  if (!ents.length) { alert("Este pedido no tiene mensaje de tarjeta."); return; }
+  $("printArea").innerHTML = ents.map(e => `
+    <div class="tag tag-solo-msg">
+      ${e.destinatario ? `<div class="tag-para">Para: ${esc(e.destinatario)}</div>` : ""}
+      <div class="msg-grande">${esc(e.tarjeta)}</div>
+      <div class="tag-firma">🌹 Floristería Happy</div>
+    </div>`).join("");
+  window.print();
+}
+function datosWhatsApp(id) {
+  const p = PEDIDOS.find(x => x.id === id); if (!p) return;
+  const ents = (p.entregas && p.entregas.length) ? p.entregas : [{}];
+  const txt = ents.map((e, i) => [
+    ents.length > 1 ? "— Entrega " + (i + 1) + " —" : "",
+    "Producto: " + prodDe(p, e),
+    "Fecha: " + (e.fecha || "") + "  Franja: " + (e.franja || ""),
+    "Destinatario: " + (e.destinatario || "") + (e.tel_destinatario ? " (" + e.tel_destinatario + ")" : ""),
+    "Dirección: " + (e.direccion || "") + (e.distrito ? ", " + e.distrito : "")
+  ].filter(Boolean).join("\n")).join("\n\n");
+  const full = "📦 Pedido — Floristería Happy\nCliente: " + (p.cliente || "") + " (" + (p.telefono || "") + ")\n\n" + txt;
+  window.open("https://wa.me/?text=" + encodeURIComponent(full), "_blank");
+}
 function cambiarEstado(id, estado) {
   if (!nube) { alert("Necesitas la nube (Firebase) para gestionar estados."); return; }
   nube.db.collection("pedidos").doc(id).update({ estado }).catch(e => alert("No se pudo actualizar: " + e.message));
@@ -907,6 +962,11 @@ function pintarPedidos() {
       <div class="ped-tel">${esc(p.telefono || "")} · Pago: ${esc(p.pago || "")} · Total: S/ ${soles(p.total || 0)}${p.dni ? " · DNI: " + esc(p.dni) : ""}</div>
       <div class="ped-items">${its}</div>${ent}
       <div class="ped-btns">${["Pendiente", "Pagado", "Entregado", "Anulado"].map(x => `<button class="ped-b ${x === e ? "activo" : ""}" data-estado="${p.id}|${x}">${x}</button>`).join("")}</div>
+      <div class="ped-btns">
+        <button class="secundario" data-imprmsg="${p.id}">💌 Imprimir mensaje</button>
+        <button class="secundario" data-imprdatos="${p.id}">🖨️ Imprimir datos</button>
+        <button class="secundario" data-datoswa="${p.id}">📲 Datos por WhatsApp</button>
+      </div>
     </div>`;
   }).join("") : "<p>No hay pedidos en este periodo.</p>";
 }
