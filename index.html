@@ -130,7 +130,16 @@
   .btn-add:disabled { background:#999; cursor:not-allowed; }
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; z-index:100; overflow-y:auto; padding:16px; }
   .modal.abierto { display:block; }
-  .modal-caja { background:var(--card); border-radius:14px; max-width:920px; width:100%; margin:16px auto; padding:20px; position:relative; }
+  .modal-caja { background:var(--card); border-radius:14px; max-width:980px; width:100%; margin:16px auto; padding:22px; position:relative; }
+  @media (min-width:800px){ .modal-caja { padding:34px; } .detalle { gap:34px; } .info h2 { font-size:30px; } .precio-det { font-size:30px; } .galeria .grande { font-size:90px; } }
+  .det-total { font-size:17px; margin:14px 0 6px; color:var(--texto); }
+  .det-total b { color:var(--rojo); }
+  .qty-step { display:inline-flex; align-items:center; border:1.5px solid var(--borde); border-radius:26px; overflow:hidden; }
+  .qty-step button { width:44px; height:46px; border:0; background:var(--card); color:var(--texto); font-size:22px; cursor:pointer; }
+  .qty-step span { min-width:40px; text-align:center; font-size:18px; font-weight:600; }
+  .add-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:8px 0 4px; }
+  .btn-carrito { flex:1; min-width:200px; background:var(--rojo); color:#fff; border:0; padding:15px 22px; border-radius:28px; font-size:17px; font-weight:700; cursor:pointer; box-shadow:0 3px 12px rgba(0,0,0,.18); }
+  .btn-carrito:hover { background:var(--rojo2); }
   .cerrar { position:absolute; top:10px; right:12px; background:none; border:0; font-size:26px; color:var(--suave); cursor:pointer; line-height:1; z-index:3; }
   .detalle { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
   @media (max-width:700px){ .detalle { grid-template-columns:1fr; } }
@@ -697,7 +706,7 @@ function pintarSecciones() {
 function fotoHTML(p, cls) {
   return p.foto ? `<img class="${cls||""}" src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy">` : `<div class="${cls||""}">🌹</div>`;
 }
-let galFotos = [], galIdx = 0;
+let galFotos = [], galIdx = 0, detPrecio = 0, detQtyN = 1;
 function actualizarGaleria() {
   const img = document.querySelector("#galGrande img"); if (img && galFotos[galIdx]) img.src = galFotos[galIdx];
   document.querySelectorAll("#galThumbs img").forEach((t, i) => t.classList.toggle("activa", i === galIdx));
@@ -708,6 +717,7 @@ function abrirDetalle(id) {
   galIdx = 0;
   const enDesc = p.precioAntes > p.precio, ahorro = enDesc ? p.precioAntes - p.precio : 0;
   const comps = CATALOGO.filter(x => x.categoria === "complementos" && x.stock);
+  detPrecio = p.precio; detQtyN = 1;
   $("detalle").innerHTML = `
     <div class="galeria">
       <div class="grande" id="galGrande">
@@ -722,7 +732,11 @@ function abrirDetalle(id) {
       ${enDesc ? `<div class="ahorras">Ahorras: S/ ${soles(ahorro)}</div>` : ""}
       ${p.stock ? "" : '<div class="agot-det">Agotado</div>'}
       ${p.desc ? `<p class="desc-det">${esc(p.desc)}</p>` : ""}
-      <div class="add-row"><button class="btn-add" data-add="${p.id}" ${p.stock ? "" : "disabled"}>${p.stock ? "Agregar al pedido" : "Agotado"}</button></div>
+      ${p.stock ? `<div class="det-total">Total: <b>S/ <span id="detTotal">${soles(p.precio)}</span></b></div>
+      <div class="add-row">
+        <div class="qty-step"><button type="button" data-qmenos aria-label="Menos">−</button><span id="detQty">1</span><button type="button" data-qmas aria-label="Más">+</button></div>
+        <button class="btn-carrito" data-addcart="${p.id}">🛒 Añadir al carrito</button>
+      </div>` : '<div class="agot-det">Agotado</div>'}
       ${comps.length ? `<h3 class="comp-titulo">Complementa tu pedido</h3>
       <div class="complementos-grid">${comps.map(c => `
         <div class="comp">
@@ -756,7 +770,6 @@ function pintarGrid() {
         <h3>${esc(p.nombre)}</h3>
         <div class="precio">S/ ${soles(p.precio)}${enDesc ? ` <span class="precio-antes">S/ ${soles(p.precioAntes)}</span>` : ""}</div>
         ${enDesc ? `<div class="ahorras">Ahorras: S/ ${soles(ahorro)}</div>` : ""}
-        <button class="btn-add" data-add="${p.id}" ${p.stock ? "" : "disabled"}>${p.stock ? "Agregar" : "Agotado"}</button>
       </div>
     </article>`;
   }).join("") || `<p>Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
@@ -897,6 +910,9 @@ $("restaurar").onclick = () => {
 document.addEventListener("click", e => {
   const d = e.target.dataset; if (!d) return;
   if (d.gal) { if (galFotos.length) { galIdx = (galIdx + Number(d.gal) + galFotos.length) % galFotos.length; actualizarGaleria(); } return; }
+  if (d.qmenos !== undefined) { detQtyN = Math.max(1, detQtyN - 1); $("detQty").textContent = detQtyN; $("detTotal").textContent = soles(detPrecio * detQtyN); return; }
+  if (d.qmas !== undefined) { detQtyN = detQtyN + 1; $("detQty").textContent = detQtyN; $("detTotal").textContent = soles(detPrecio * detQtyN); return; }
+  if (d.addcart) { cambiar(+d.addcart, detQtyN); return; }
   if (d.thumb !== undefined) { galIdx = Number(d.thumb); actualizarGaleria(); return; }
   if (d.tab !== undefined) {
     filtro = d.tab === "tipos" ? { sec:"", tipo:filtro.tipo, oc:"", group:"tipo" }
