@@ -82,6 +82,13 @@
   .card { position:relative; cursor:pointer; transition:box-shadow .15s, transform .15s; }
   .card:hover { box-shadow:0 5px 16px rgba(0,0,0,.16); transform:translateY(-2px); }
   .card .foto { height:210px; }
+  /* En PC: imágenes más grandes (unas 4 por fila) */
+  @media (min-width:700px) {
+    .grid { grid-template-columns:repeat(auto-fill,minmax(245px,1fr)); gap:20px; }
+    .card .foto { height:290px; }
+    .card .body h3 { font-size:17px; }
+    .card .precio { font-size:19px; }
+  }
   .card .body { align-items:center; text-align:center; gap:5px; padding:12px 10px 14px; }
   .card .precio { font-size:16px; }
   .precio-antes { text-decoration:line-through; color:var(--suave); font-size:13px; font-weight:400; margin-left:4px; }
