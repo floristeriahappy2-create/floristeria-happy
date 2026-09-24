@@ -426,6 +426,8 @@
           <label>Quien recibe<input name="destinatario"></label>
           <label>Teléfono de quien recibe<input name="tel_destinatario" type="tel"></label>
           <label class="ancho">Dirección de entrega<input name="direccion"></label>
+          <label class="ancho">Referencia<input name="referencia" placeholder="Ej. casa de portón azul, frente al parque"></label>
+          <label class="ancho">Observaciones<textarea name="observaciones" rows="2" placeholder="Indicaciones adicionales para la entrega"></textarea></label>
           <label>Distrito<input name="distrito"></label>
           <label>Fecha de entrega<input name="fecha" type="date"></label>
           <label>Franja horaria<select name="franja"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
@@ -534,6 +536,8 @@ const KEY = "happy_catalogo_v7";
 const SECCIONES = [
   { id:"ramos",        nombre:"Ramos",              icono:"💐" },
   { id:"arreglos",     nombre:"Arreglos florales",  icono:"🌺" },
+  { id:"flores-secas", nombre:"Flores secas",       icono:"🌾" },
+  { id:"desayunos",    nombre:"Desayunos",          icono:"🥐" },
   { id:"macrame",      nombre:"Cuadros macramé",    icono:"🪢" },
   { id:"suscripcion",  nombre:"Suscripción floral", icono:"📅" },
   { id:"complementos", nombre:"Complementos",       icono:"🎁" }
@@ -673,6 +677,8 @@ function leerSeccion(v) {
   const t = sinTilde(v); if (!t) return "";
   if (SECCIONES.some(x => x.id === t)) return t;
   if (t.includes("complement")) return "complementos";
+  if (t.includes("seca")) return "flores-secas";
+  if (t.includes("desayuno")) return "desayunos";
   if (t.includes("macram") || t.includes("cuadro")) return "macrame";
   if (t.includes("suscrip")) return "suscripcion";
   if (t.includes("arreglo") || t.includes("corona")) return "arreglos";
@@ -695,7 +701,7 @@ function pintarSelects() {
 function pintarTabs() {
   const sec = id => SECCIONES.find(x => x.id === id);
   const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
-  const tabs = [{ id:"", nombre:"Todo" }, sec("ramos"), sec("arreglos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
+  const tabs = [{ id:"", nombre:"Todo" }, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
   $("tabs").innerHTML = tabs.map(t => `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.nombre}</button>`).join("");
   const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
   $("ocasiones").style.display = sub.length ? "" : "none";
@@ -1086,6 +1092,8 @@ function imprimirDatos(id) {
       <div class="tag-row"><b>Fecha:</b> ${esc(e.fecha || "")} &nbsp; <b>Franja:</b> ${esc(e.franja || "")}</div>
       <div class="tag-row"><b>Destinatario:</b> ${esc(e.destinatario || "")}${e.tel_destinatario ? " · Tel: " + esc(e.tel_destinatario) : ""}</div>
       <div class="tag-row"><b>Dirección:</b> ${esc(e.direccion || "")}${e.distrito ? ", " + esc(e.distrito) : ""}</div>
+      ${e.referencia ? `<div class="tag-row"><b>Referencia:</b> ${esc(e.referencia)}</div>` : ""}
+      ${e.observaciones ? `<div class="tag-row"><b>Obs:</b> ${esc(e.observaciones)}</div>` : ""}
       <div class="tag-row"><b>Cliente:</b> ${esc(p.cliente || "")} · Tel: ${esc(p.telefono || "")}</div>
     </div>`).join("");
   window.print();
@@ -1105,7 +1113,9 @@ function datosWhatsApp(id) {
     "Producto: " + prodDe(p, e),
     "Fecha: " + (e.fecha || "") + "  Franja: " + (e.franja || ""),
     "Destinatario: " + (e.destinatario || "") + (e.tel_destinatario ? " (" + e.tel_destinatario + ")" : ""),
-    "Dirección: " + (e.direccion || "") + (e.distrito ? ", " + e.distrito : "")
+    "Dirección: " + (e.direccion || "") + (e.distrito ? ", " + e.distrito : ""),
+    e.referencia ? "Referencia: " + e.referencia : "",
+    e.observaciones ? "Obs: " + e.observaciones : ""
   ].filter(Boolean).join("\n")).join("\n\n");
   const full = "📦 Pedido — Floristería Happy\nCliente: " + (p.cliente || "") + " (" + (p.telefono || "") + ")\n\n" + txt;
   window.open("https://wa.me/?text=" + encodeURIComponent(full), "_blank");
@@ -1253,12 +1263,13 @@ $("form").addEventListener("submit", e => {
     for (let i = 0; i < u.length; i++) {
       const p = u[i];
       const dest = el["dest_" + i].value.trim(), telD = el["tel_" + i].value.trim(), dir = el["dir_" + i].value.trim(),
-            dist = el["dist_" + i].value.trim(), fecha = el["fecha_" + i].value, franja = el["franja_" + i].value, tarjeta = el["tarjeta_" + i].value.trim();
+            dist = el["dist_" + i].value.trim(), fecha = el["fecha_" + i].value, franja = el["franja_" + i].value, tarjeta = el["tarjeta_" + i].value.trim(),
+            referencia = (el["ref_" + i] ? el["ref_" + i].value.trim() : ""), observaciones = (el["obs_" + i] ? el["obs_" + i].value.trim() : "");
       if (!dest || !dir || !dist || !fecha) { alert(`Completa los datos de la Entrega ${i + 1}.`); throw "falta"; }
-      bloques.push(`${i + 1}) ${p.nombre} → ${dest}${telD ? " (" + telD + ")" : ""}, ${dir}, ${dist}, ${fecha}, ${franja}${tarjeta ? `, tarjeta: "${tarjeta}"` : ""}`);
+      bloques.push(`${i + 1}) ${p.nombre} → ${dest}${telD ? " (" + telD + ")" : ""}, ${dir}${referencia ? " (Ref: " + referencia + ")" : ""}, ${dist}, ${fecha}, ${franja}${tarjeta ? `, tarjeta: "${tarjeta}"` : ""}${observaciones ? `, Obs: ${observaciones}` : ""}`);
       filas.push({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: p.nombre, total: p.precio,
-                   destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
-      entregas.push({ producto: p.nombre, destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
+                   destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
+      entregas.push({ producto: p.nombre, destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
     }
     msg = [...cab, ``, `ENTREGAS (${u.length}):`, ...bloques].join("\n");
     filas.forEach(enviarHoja);
@@ -1266,10 +1277,11 @@ $("form").addEventListener("submit", e => {
     const dest = el.destinatario.value.trim(), dir = el.direccion.value.trim(), dist = el.distrito.value.trim(), fecha = el.fecha.value;
     if (!dest || !dir || !dist || !fecha) { alert("Completa los datos de entrega (quien recibe, dirección, distrito y fecha)."); return; }
     const telD = el.tel_destinatario.value.trim(), franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
-    msg = [...cab, ``, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, `Entrega: ${fecha}, ${franja}`, tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
+    const referencia = (el.referencia ? el.referencia.value.trim() : ""), observaciones = (el.observaciones ? el.observaciones.value.trim() : "");
+    msg = [...cab, ``, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, referencia ? `Referencia: ${referencia}` : "", `Entrega: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
     enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
-                 destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
-    entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, distrito: dist, fecha, franja, tarjeta });
+                 destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
+    entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
   }
 
   if (nube) {
@@ -1313,6 +1325,8 @@ function pintarEntregasMulti() {
         <label>Quien recibe<input name="dest_${i}" required></label>
         <label>Teléfono de quien recibe<input name="tel_${i}" type="tel"></label>
         <label style="grid-column:1/-1">Dirección<input name="dir_${i}" required></label>
+        <label style="grid-column:1/-1">Referencia<input name="ref_${i}"></label>
+        <label style="grid-column:1/-1">Observaciones<textarea name="obs_${i}" rows="2"></textarea></label>
         <label>Distrito<input name="dist_${i}" required></label>
         <label>Fecha<input name="fecha_${i}" type="date" required></label>
         <label>Franja horaria<select name="franja_${i}"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
