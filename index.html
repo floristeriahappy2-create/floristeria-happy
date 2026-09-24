@@ -157,6 +157,26 @@
   .barra-col { flex:1 1 auto; min-width:26px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
   .barra { width:70%; background:var(--rojo); border-radius:4px 4px 0 0; min-height:2px; }
   .barra-col span { font-size:11px; color:var(--suave); margin-top:4px; }
+
+  #monitor { position:fixed; inset:0; background:#141014; color:#fff; z-index:400; display:none; flex-direction:column; }
+  #monitor.abierto { display:flex; }
+  .mon-top { display:flex; align-items:center; gap:14px; padding:14px 22px; background:var(--rojo); flex-wrap:wrap; }
+  .mon-titulo { font-size:24px; font-weight:700; }
+  .mon-count { font-size:16px; opacity:.9; }
+  .mon-btn { margin-left:auto; background:rgba(255,255,255,.15); color:#fff; border:0; padding:10px 16px; border-radius:8px; font-size:16px; cursor:pointer; }
+  .mon-btn + .mon-btn { margin-left:8px; }
+  .mon-grid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; padding:18px; align-content:start; }
+  .mon-card { background:#211b21; border-radius:14px; padding:16px 18px; border-left:8px solid var(--rojo); }
+  .mon-card.nuevo { animation:parpadeo 1s ease-in-out 3; }
+  @keyframes parpadeo { 0%,100%{ background:#211b21; } 50%{ background:#4a2530; } }
+  .mon-card h3 { margin:0 0 4px; font-size:22px; }
+  .mon-hora { font-size:14px; color:#c9b8bd; }
+  .mon-prod { font-size:18px; margin:10px 0; font-weight:600; }
+  .mon-ent { font-size:15px; color:#d9cdd0; margin-top:4px; }
+  .mon-badge { display:inline-block; margin-top:10px; padding:3px 12px; border-radius:14px; font-size:14px; font-weight:700; }
+  .mon-vacio { grid-column:1/-1; text-align:center; color:#8a7d81; font-size:20px; padding:60px 0; }
+
+  .aviso-cupo { display:none; color:var(--rojo); font-size:13px; font-weight:600; background:var(--rosado); border-radius:8px; padding:8px 12px; }
 </style>
 </head>
 <body>
@@ -249,7 +269,7 @@
       <div id="graficoVentas"></div>
     </div>
 
-    <div class="acciones" id="zonaSalir"><button class="secundario oculto" id="btnSalir" type="button">Cerrar sesión</button></div>
+    <div class="acciones" id="zonaSalir"><button class="secundario" id="btnMonitor" type="button">📺 Monitor TV</button><button class="secundario oculto" id="btnSalir" type="button">Cerrar sesión</button></div>
     </div>
   </section>
 
@@ -300,6 +320,7 @@
           <label>Distrito<input name="distrito"></label>
           <label>Fecha de entrega<input name="fecha" type="date"></label>
           <label>Franja horaria<select name="franja"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
+          <div class="ancho aviso-cupo" id="avisoCupoUnica"></div>
           <label class="ancho">Mensaje para la tarjeta<textarea name="tarjeta" rows="2"></textarea></label>
         </div>
       </div>
@@ -319,6 +340,16 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<div id="monitor">
+  <div class="mon-top">
+    <span class="mon-titulo">🌹 Pedidos en vivo — Floristería Happy</span>
+    <span class="mon-count" id="monCount"></span>
+    <button class="mon-btn" id="monFull" type="button">⛶ Pantalla completa</button>
+    <button class="mon-btn" id="monSalir" type="button">✕ Salir</button>
+  </div>
+  <div class="mon-grid" id="monGrid"></div>
+</div>
+
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Detalle del producto">
   <div class="modal-caja">
     <button class="cerrar" id="cerrarModal" aria-label="Cerrar">✕</button>
@@ -329,6 +360,19 @@
 
 <script>
 const WHATSAPP = "51941905462";
+const CUPO_MAX = 10;
+let cuposCache = {};
+function franjaCod(f) { return ({ "09:00 - 13:00": "t1", "13:00 - 17:00": "t2", "17:00 - 21:00": "t3" })[f] || "tx"; }
+function cupoId(fecha, franja) { return fecha + "_" + franjaCod(franja); }
+function revisarCupo(fecha, franja, avisoEl) {
+  if (avisoEl) avisoEl.style.display = "none";
+  if (!nube || !fecha || !franja) return;
+  const id = cupoId(fecha, franja);
+  nube.db.collection("cupos").doc(id).get().then(doc => {
+    const n = doc.exists ? (doc.data().count || 0) : 0; cuposCache[id] = n;
+    if (avisoEl && n >= CUPO_MAX) { avisoEl.style.display = "block"; avisoEl.textContent = "⚠️ La franja " + franja + " del " + fecha + " ya está llena. Por favor elige otra franja u otra fecha."; }
+  }).catch(() => {});
+}
 const PAGOS = {
   "Yape / Plin": `<b>💳 Yape / Plin</b><br>941905462 — Inversiones y Servicios Happy`,
   "Transferencia BCP": `<b>💳 Cuenta BCP</b><br>2908965228048 — Inversiones y Servicios Happy`,
@@ -412,7 +456,13 @@ async function iniciarNube() {
     nube.auth.onAuthStateChanged(u => {
       usuario = u; pintarAcceso();
       if (u) {
-        unsubPedidos = nube.db.collection("pedidos").onSnapshot(snap => { PEDIDOS = snap.docs.map(x => x.data()); pintarPedidos(); pintarDashboard(); }, e => console.error(e));
+        let primerPed = true;
+        unsubPedidos = nube.db.collection("pedidos").onSnapshot(snap => {
+          PEDIDOS = snap.docs.map(x => x.data());
+          if (!primerPed) { for (const c of snap.docChanges()) if (c.type === "added" && !idsVistos.has(c.doc.id)) nuevoPedido(c.doc.data()); }
+          snap.docs.forEach(x => idsVistos.add(x.id)); primerPed = false;
+          pintarPedidos(); pintarDashboard(); pintarMonitor();
+        }, e => console.error(e));
       } else if (unsubPedidos) { unsubPedidos(); unsubPedidos = null; PEDIDOS = []; }
     });
     let primera = true;
@@ -794,6 +844,42 @@ $("btnAdmin").onclick = () => {
   $("admin").style.display = "block"; $("btnAdmin").textContent = "Cerrar administración";
   pintarAcceso(); $("admin").scrollIntoView({ behavior:"smooth" });
 };
+let audioCtx = null, idsVistos = new Set(), monitorAbierto = false;
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    for (let i = 0; i < 2; i++) {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime + i * 0.28;
+      o.connect(g); g.connect(audioCtx.destination); o.type = "sine"; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22); o.start(t); o.stop(t + 0.24);
+    }
+  } catch (e) {}
+}
+function nuevoPedido(p) {
+  beep();
+  toast("🔔 Nuevo pedido de " + (p.cliente || "cliente"));
+  if (monitorAbierto) pintarMonitor(p.id);
+}
+function pintarMonitor(idNuevo) {
+  if (!$("monGrid")) return;
+  const activos = PEDIDOS.filter(p => { const e = p.estado || "Pendiente"; return e === "Pendiente" || e === "Pagado"; })
+    .sort((a, b) => new Date(b.fechaISO) - new Date(a.fechaISO));
+  const col = { Pendiente: "#e0a800", Pagado: "#2e7d32" };
+  $("monCount").textContent = activos.length + " pedido(s) por atender";
+  $("monGrid").innerHTML = activos.length ? activos.map(p => {
+    const e = p.estado || "Pendiente";
+    const prod = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
+    const ent = (p.entregas || []).map((x, i) => `<div class="mon-ent">${p.entregas.length > 1 ? "📍" + (i + 1) + " " : "📍 "}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}</div>`).join("");
+    return `<div class="mon-card ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
+      <h3>${esc(p.cliente || "")}</h3>
+      <div class="mon-hora">${esc(p.fecha || "")} · ${esc(p.telefono || "")}</div>
+      <div class="mon-prod">${prod}</div>${ent}
+      <span class="mon-badge" style="background:${col[e]}">${e} · S/ ${soles(p.total || 0)}</span>
+    </div>`;
+  }).join("") : `<div class="mon-vacio">Sin pedidos pendientes por ahora ✨</div>`;
+}
 function cambiarEstado(id, estado) {
   if (!nube) { alert("Necesitas la nube (Firebase) para gestionar estados."); return; }
   nube.db.collection("pedidos").doc(id).update({ estado }).catch(e => alert("No se pudo actualizar: " + e.message));
@@ -859,12 +945,21 @@ $("formLogin").addEventListener("submit", async e => {
   catch { alert("Correo o contraseña incorrectos."); }
 });
 $("btnSalir").onclick = () => nube && nube.auth.signOut();
+$("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.add("abierto"); if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); else beep(); pintarMonitor(); };
+$("monSalir").onclick = () => { monitorAbierto = false; $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
+$("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenElement) m.requestFullscreen && m.requestFullscreen(); else document.exitFullscreen(); };
 
 /* Pedido por WhatsApp */
 function enviarHoja(fila) {
   if (!PEDIDOS_URL) return;
   fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
 }
+$("form").addEventListener("change", e => {
+  const n = e.target.name || "", els = e.target.form.elements;
+  if (n === "fecha" || n === "franja") revisarCupo(els.fecha.value, els.franja.value, $("avisoCupoUnica"));
+  const m = n.match(/^(fecha|franja)_(\d+)$/);
+  if (m) { const i = m[2]; revisarCupo(els["fecha_" + i] && els["fecha_" + i].value, els["franja_" + i] && els["franja_" + i].value, document.getElementById("avisoCupo_" + i)); }
+});
 $("form").addEventListener("submit", e => {
   e.preventDefault();
   if (!carrito.size) { alert("Agrega al menos un producto"); return; }
@@ -909,8 +1004,10 @@ $("form").addEventListener("submit", e => {
   if (nube) {
     nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas }).catch(() => {});
   }
+  for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= CUPO_MAX) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + CUPO_MAX + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
   window.open(`https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg), "_blank");
   if (nube) { for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {}); }
+  if (nube) { for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(1), fecha: en.fecha, franja: en.franja }, { merge: true }).catch(() => {}); cuposCache[cid] = (cuposCache[cid] || 0) + 1; } }
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
   carrito.clear(); pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
 });
@@ -942,6 +1039,7 @@ function pintarEntregasMulti() {
         <label>Distrito<input name="dist_${i}" required></label>
         <label>Fecha<input name="fecha_${i}" type="date" required></label>
         <label>Franja horaria<select name="franja_${i}"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
+        <div style="grid-column:1/-1" class="aviso-cupo" id="avisoCupo_${i}"></div>
         <label style="grid-column:1/-1">Mensaje para la tarjeta<textarea name="tarjeta_${i}" rows="2"></textarea></label>
       </div>
     </div>`).join("") : "<p>Agrega productos a tu pedido primero.</p>";
