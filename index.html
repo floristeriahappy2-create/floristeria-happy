@@ -240,6 +240,28 @@
   .msg-grande { font-size:22px; line-height:1.5; color:#000; }
   @page { margin:12mm; }
   @media print { body > *:not(#printArea) { display:none !important; } #printArea { display:block !important; } .tag { page-break-after:always; } }
+
+  .cart-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:200; }
+  .cart-modal.abierto { display:block; }
+  .cart-panel { position:absolute; top:0; right:0; height:100%; width:430px; max-width:92%; background:var(--card); display:flex; flex-direction:column; box-shadow:-4px 0 20px rgba(0,0,0,.25); }
+  .cart-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--borde); }
+  .cart-head h3 { margin:0; font-size:20px; }
+  .cart-head button { background:none; border:0; font-size:24px; cursor:pointer; color:var(--suave); }
+  .cart-items { flex:1; overflow-y:auto; padding:10px 16px; }
+  .cart-it { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--borde); }
+  .cart-it img, .cart-it .noimg { width:72px; height:72px; border-radius:8px; object-fit:cover; background:var(--rosado); display:flex; align-items:center; justify-content:center; font-size:28px; flex:0 0 auto; }
+  .ci-body { flex:1; min-width:0; }
+  .ci-body h4 { margin:0 0 8px; font-size:15px; }
+  .ci-row { display:flex; align-items:center; gap:10px; font-size:14px; flex-wrap:wrap; }
+  .ci-step { display:inline-flex; align-items:center; border:1px solid var(--borde); border-radius:16px; }
+  .ci-step button { width:32px; height:32px; border:0; background:var(--card); color:var(--texto); font-size:17px; cursor:pointer; }
+  .ci-step span { min-width:26px; text-align:center; }
+  .ci-del { margin-left:auto; background:none; border:0; font-size:18px; cursor:pointer; }
+  .cart-foot { border-top:1px solid var(--borde); padding:16px 20px; }
+  .cart-sub { display:flex; justify-content:space-between; align-items:center; font-size:16px; margin-bottom:12px; }
+  .cart-sub b { color:var(--rojo); font-size:20px; }
+  .cart-foot .primario { width:100%; padding:14px; font-size:16px; }
+  @media (max-width:500px){ .cart-panel { width:100%; max-width:100%; } }
 </style>
 </head>
 <body>
@@ -256,12 +278,7 @@
     <p id="heroSub">Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.</p>
   </div>
 </section>
-<section class="features">
-  <div class="feat"><div class="feat-ic">💝</div><b>Satisfacción garantizada</b><span>Tu felicidad es nuestra prioridad</span></div>
-  <div class="feat"><div class="feat-ic">⏰</div><b>Entregas el mismo día</b><span>Comprando con anticipación</span></div>
-  <div class="feat"><div class="feat-ic">🚚</div><b>Envío a domicilio</b><span>Llevamos tu detalle a la puerta</span></div>
-  <div class="feat"><div class="feat-ic">✅</div><b>Compra fácil y rápida</b><span>Elige, agrega y pide en minutos</span></div>
-</section>
+
 
 <main>
   <!-- ===== PANEL ADMINISTRADOR ===== -->
@@ -432,6 +449,17 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="printArea"></div>
+
+<div id="cartModal" class="cart-modal">
+  <div class="cart-panel">
+    <div class="cart-head"><h3>🛒 Carrito de compra</h3><button id="cartClose" aria-label="Cerrar">✕</button></div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-foot">
+      <div class="cart-sub"><span>SUBTOTAL</span><b id="cartSubtotal">S/ 0.00</b></div>
+      <button class="primario" id="finalizarCompra">Finalizar compra</button>
+    </div>
+  </div>
+</div>
 
 <div id="monitor">
   <div class="mon-top">
@@ -792,6 +820,25 @@ function cambiar(id, delta) {
     if (mp) setTimeout(() => mp.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
   }
 }
+function pintarCartModal() {
+  if (!$("cartItems")) return;
+  let total = 0;
+  const filas = [...carrito].map(([id, c]) => {
+    const p = CATALOGO.find(x => x.id === id); if (!p) return ""; total += p.precio * c;
+    return `<div class="cart-it">
+      ${p.foto ? `<img src="${esc(p.foto)}" alt="">` : `<div class="noimg">🌹</div>`}
+      <div class="ci-body"><h4>${esc(p.nombre)}</h4>
+        <div class="ci-row">
+          <span class="ci-step"><button data-cmenos="${id}">−</button><span>${c}</span><button data-cmas="${id}">+</button></span>
+          × S/ ${soles(p.precio)} = <b>S/ ${soles(p.precio * c)}</b>
+          <button class="ci-del" data-quitar="${id}" title="Quitar">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  $("cartItems").innerHTML = carrito.size ? filas : '<p style="text-align:center;color:var(--suave);padding:40px 0">Tu carrito está vacío.<br>Agrega productos del catálogo.</p>';
+  $("cartSubtotal").textContent = "S/ " + soles(total);
+}
 function pintarCarrito() {
   let total = 0;
   for (const id of [...carrito.keys()]) if (!CATALOGO.find(p => p.id === id)) carrito.delete(id);
@@ -804,6 +851,7 @@ function pintarCarrito() {
   $("carrito").innerHTML = filas.join("") || '<tr><td colspan="3">Tu pedido está vacío. Agrega productos del catálogo.</td></tr>';
   $("total").textContent = soles(total);
   if ($("cartN")) { $("cartN").textContent = [...carrito.values()].reduce((a, b) => a + b, 0); $("cartT").textContent = soles(total); }
+  pintarCartModal();
   if ($("multi") && $("multi").checked) pintarEntregasMulti();
 }
 
@@ -913,6 +961,9 @@ document.addEventListener("click", e => {
   if (d.qmenos !== undefined) { detQtyN = Math.max(1, detQtyN - 1); $("detQty").textContent = detQtyN; $("detTotal").textContent = soles(detPrecio * detQtyN); return; }
   if (d.qmas !== undefined) { detQtyN = detQtyN + 1; $("detQty").textContent = detQtyN; $("detTotal").textContent = soles(detPrecio * detQtyN); return; }
   if (d.addcart) { cambiar(+d.addcart, detQtyN); return; }
+  if (d.cmas) { carrito.set(+d.cmas, (carrito.get(+d.cmas) || 0) + 1); pintarCarrito(); return; }
+  if (d.cmenos) { const n = (carrito.get(+d.cmenos) || 0) - 1; n <= 0 ? carrito.delete(+d.cmenos) : carrito.set(+d.cmenos, n); pintarCarrito(); return; }
+  if (d.quitar) { carrito.delete(+d.quitar); pintarCarrito(); return; }
   if (d.thumb !== undefined) { galIdx = Number(d.thumb); actualizarGaleria(); return; }
   if (d.tab !== undefined) {
     filtro = d.tab === "tipos" ? { sec:"", tipo:filtro.tipo, oc:"", group:"tipo" }
@@ -1283,7 +1334,10 @@ $("fSeccion").addEventListener("change", e => { filtro.sec = e.target.value; fil
 $("fEstado").addEventListener("change", pintarPedidos);
 $("fPeriodo").addEventListener("change", pintarPedidos);
 $("dPeriodo").addEventListener("change", pintarDashboard);
-$("verPedido").addEventListener("click", () => { const mp = document.getElementById("miPedido"); if (mp) mp.scrollIntoView({ behavior: "smooth" }); });
+$("verPedido").addEventListener("click", () => { pintarCartModal(); $("cartModal").classList.add("abierto"); });
+$("cartClose").addEventListener("click", () => $("cartModal").classList.remove("abierto"));
+$("cartModal").addEventListener("click", e => { if (e.target.id === "cartModal") $("cartModal").classList.remove("abierto"); });
+$("finalizarCompra").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); const f = $("form"); if (f) f.scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs };
