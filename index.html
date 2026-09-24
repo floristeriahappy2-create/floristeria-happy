@@ -169,6 +169,13 @@
   .mon-card { background:#211b21; border-radius:14px; padding:16px 18px; border-left:8px solid var(--rojo); }
   .mon-card.nuevo { animation:parpadeo 1s ease-in-out 3; }
   @keyframes parpadeo { 0%,100%{ background:#211b21; } 50%{ background:#4a2530; } }
+  .mon-card.hoy { border-left-color:#e0a800 !important; }
+  .mon-card.urg { border-left-color:#ff9800 !important; animation:alertaNaranja 1.1s infinite; }
+  .mon-card.venc { border-left-color:#e53935 !important; animation:alertaRojo .8s infinite; }
+  @keyframes alertaNaranja { 0%,100%{ box-shadow:0 0 0 0 rgba(255,152,0,0); } 50%{ box-shadow:0 0 0 5px rgba(255,152,0,.75); } }
+  @keyframes alertaRojo { 0%,100%{ box-shadow:0 0 0 0 rgba(229,57,53,.2); } 50%{ box-shadow:0 0 0 6px rgba(229,57,53,.85); } }
+  .mon-urg { display:inline-block; font-size:15px; font-weight:800; padding:2px 12px; border-radius:14px; vertical-align:middle; }
+  .mon-urg.urg { background:#ff9800; color:#000; } .mon-urg.venc { background:#e53935; color:#fff; } .mon-urg.hoy { background:#e0a800; color:#000; }
   .mon-card h3 { margin:0 0 4px; font-size:22px; }
   .mon-hora { font-size:14px; color:#c9b8bd; }
   .mon-prod { font-size:18px; margin:10px 0; font-weight:600; }
@@ -877,18 +884,32 @@ function nuevoPedido(p) {
   toast("🔔 Nuevo pedido de " + (p.cliente || "cliente"));
   if (monitorAbierto) pintarMonitor(p.id);
 }
+function franjaFinH(f) { return ({ "09:00 - 13:00": 13, "13:00 - 17:00": 17, "17:00 - 21:00": 21 })[f] || 21; }
+function deadlineEntrega(e) { if (!e || !e.fecha) return null; const [y, m, d] = String(e.fecha).split("-").map(Number); if (!y) return null; return new Date(y, (m || 1) - 1, d || 1, franjaFinH(e.franja), 0, 0); }
+function deadlinePedido(p) { const ds = (p.entregas || []).map(deadlineEntrega).filter(Boolean).map(x => x.getTime()); return ds.length ? new Date(Math.min(...ds)) : null; }
+function urgencia(dl) {
+  if (!dl) return { clase: "", txt: "" };
+  const min = Math.round((dl.getTime() - Date.now()) / 60000);
+  if (min < 0) return { clase: "venc", txt: "⚠️ VENCIDO" };
+  if (min <= 120) return { clase: "urg", txt: "⏰ " + (min >= 60 ? Math.floor(min / 60) + "h " + (min % 60) + "m" : min + " min") };
+  const finHoy = new Date(); finHoy.setHours(23, 59, 59, 0);
+  if (dl <= finHoy) return { clase: "hoy", txt: "Hoy" };
+  return { clase: "", txt: "" };
+}
 function pintarMonitor(idNuevo) {
   if (!$("monGrid")) return;
-  const activos = PEDIDOS.filter(p => { const e = p.estado || "Pendiente"; return e === "Pendiente" || e === "Pagado"; })
-    .sort((a, b) => new Date(b.fechaISO) - new Date(a.fechaISO));
   const col = { Pendiente: "#e0a800", Pagado: "#2e7d32" };
-  $("monCount").textContent = activos.length + " pedido(s) por atender";
-  $("monGrid").innerHTML = activos.length ? activos.map(p => {
-    const e = p.estado || "Pendiente";
+  const activos = PEDIDOS.filter(p => { const e = p.estado || "Pendiente"; return e === "Pendiente" || e === "Pagado"; })
+    .map(p => ({ p, dl: deadlinePedido(p) }))
+    .sort((a, b) => { if (!a.dl) return 1; if (!b.dl) return -1; return a.dl - b.dl; });
+  const urgentes = activos.filter(x => { const u = urgencia(x.dl); return u.clase === "urg" || u.clase === "venc"; }).length;
+  $("monCount").textContent = activos.length + " pedido(s) por atender" + (urgentes ? "  ·  🔴 " + urgentes + " urgente(s)" : "");
+  $("monGrid").innerHTML = activos.length ? activos.map(({ p, dl }) => {
+    const e = p.estado || "Pendiente", u = urgencia(dl);
     const prod = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
     const ent = (p.entregas || []).map((x, i) => `<div class="mon-ent">${p.entregas.length > 1 ? "📍" + (i + 1) + " " : "📍 "}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}</div>`).join("");
-    return `<div class="mon-card ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
-      <h3>${esc(p.cliente || "")}</h3>
+    return `<div class="mon-card ${u.clase} ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
+      <h3>${esc(p.cliente || "")} ${u.txt ? `<span class="mon-urg ${u.clase}">${u.txt}</span>` : ""}</h3>
       <div class="mon-hora">${esc(p.fecha || "")} · ${esc(p.telefono || "")}</div>
       <div class="mon-prod">${prod}</div>${ent}
       <span class="mon-badge" style="background:${col[e]}">${e} · S/ ${soles(p.total || 0)}</span>
@@ -1005,8 +1026,9 @@ $("formLogin").addEventListener("submit", async e => {
   catch { alert("Correo o contraseña incorrectos."); }
 });
 $("btnSalir").onclick = () => nube && nube.auth.signOut();
-$("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.add("abierto"); if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); else beep(); pintarMonitor(); };
-$("monSalir").onclick = () => { monitorAbierto = false; $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
+let monInterval = null;
+$("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.add("abierto"); if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); else beep(); pintarMonitor(); clearInterval(monInterval); monInterval = setInterval(() => monitorAbierto && pintarMonitor(), 60000); };
+$("monSalir").onclick = () => { monitorAbierto = false; clearInterval(monInterval); $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
 $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenElement) m.requestFullscreen && m.requestFullscreen(); else document.exitFullscreen(); };
 
 /* Pedido por WhatsApp */
