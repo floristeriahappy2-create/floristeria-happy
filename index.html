@@ -100,10 +100,10 @@
   .aviso { margin-top:12px; padding:12px; border-radius:8px; background:var(--rosado); display:none; }
   pre { white-space:pre-wrap; word-break:break-word; font-size:12px; background:rgba(0,0,0,.05); padding:10px; border-radius:8px; margin:8px 0 0; }
   footer { text-align:center; padding:30px 20px 90px; border-top:1px solid var(--borde); margin-top:30px; }
-  .season-bar { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; padding:12px 16px; background:linear-gradient(90deg,#fff4d6,#ffe08a,#fff4d6); border-bottom:2px solid #e6b800; }
-  .season-btn { border:0; cursor:pointer; font-weight:800; font-size:16px; color:#7a3b00; background:linear-gradient(90deg,#ffd34d,#ffb300); padding:12px 22px; border-radius:30px; box-shadow:0 4px 14px rgba(230,150,0,.45); animation:seasonBlink 1s ease-in-out infinite; }
+  .season-bar { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; padding:12px 16px; background:linear-gradient(90deg,#ffe3e4,#ffc2c5,#ffe3e4); border-bottom:2px solid var(--rojo); }
+  .season-btn { border:0; cursor:pointer; font-weight:800; font-size:16px; color:#fff; background:linear-gradient(90deg,#e23b43,#c2272f); padding:12px 22px; border-radius:30px; box-shadow:0 4px 14px rgba(194,39,47,.5); animation:seasonBlink 1s ease-in-out infinite; }
   .season-btn:hover { filter:brightness(1.05); }
-  @keyframes seasonBlink { 0%,100%{ transform:scale(1); box-shadow:0 4px 14px rgba(230,150,0,.45); } 50%{ transform:scale(1.06); box-shadow:0 6px 22px rgba(230,150,0,.85); } }
+  @keyframes seasonBlink { 0%,100%{ transform:scale(1); box-shadow:0 4px 14px rgba(194,39,47,.45); } 50%{ transform:scale(1.06); box-shadow:0 6px 22px rgba(194,39,47,.9); } }
   @media (prefers-reduced-motion: reduce){ .season-btn{ animation:none; } }
   @media (max-width:560px){ .season-btn{ font-size:15px; padding:11px 18px; } }
   .temp-fila { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
@@ -129,8 +129,8 @@
   .tabs { display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; border-bottom:2px solid var(--borde); margin-bottom:12px; scrollbar-width:thin; scroll-snap-type:x proximity; }
   .tab { flex:0 0 auto; background:none; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; padding:12px 14px; min-height:44px; font-size:15px; color:var(--suave); white-space:nowrap; scroll-snap-align:start; }
   .tab[aria-selected="true"] { color:var(--rojo); border-bottom-color:var(--rojo); font-weight:600; }
-  .tab.tab-temp { color:#7a3b00; font-weight:800; background:linear-gradient(90deg,#ffe08a,#ffc94d); border-radius:20px; padding:8px 16px; margin:2px 2px -2px; border-bottom:0; animation:seasonBlink 1.2s ease-in-out infinite; }
-  .tab.tab-temp[aria-selected="true"] { color:#7a3b00; border-bottom:0; box-shadow:0 0 0 2px #e6a700 inset; }
+  .tab.tab-temp { color:#fff; font-weight:800; background:linear-gradient(90deg,#e23b43,#c2272f); border-radius:20px; padding:8px 16px; margin:2px 2px -2px; border-bottom:0; animation:seasonBlink 1.2s ease-in-out infinite; }
+  .tab.tab-temp[aria-selected="true"] { color:#fff; border-bottom:0; box-shadow:0 0 0 2px #7a141a inset; }
   .ocasiones { display:flex; flex-wrap:wrap; gap:8px; padding:2px 0 12px; margin-bottom:6px; }
   .chip { flex:0 0 auto; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); padding:10px 16px; min-height:42px; border-radius:22px; font-size:15px; white-space:nowrap; }
   .chip[aria-pressed="true"] { background:var(--rojo); border-color:var(--rojo); color:#fff; }
@@ -809,7 +809,7 @@ const nombreTipo = id => TIPOS.find(t => t.id === id)?.nombre || id;
 const nombreOcasion = id => OCASIONES.find(o => o.id === id)?.nombre || id;
 function pintarSelects() {
   const opt = (val, label, sel) => `<option value="${val}" ${sel ? "selected" : ""}>${label}</option>`;
-  $("fSeccion").innerHTML = opt("", "📋 Todas las secciones", !filtro.sec) +
+  $("fSeccion").innerHTML =
     seccionesTemporada().map(x => opt(x.id, `✨ ${x.nombre}`, filtro.sec === x.id)).join("") +
     SECCIONES.map(x => opt(x.id, `${x.icono} ${x.nombre}`, filtro.sec === x.id)).join("");
   $("fTipo").innerHTML = opt("", "🌸 Tipo de flor: todas", !filtro.tipo) +
@@ -817,11 +817,18 @@ function pintarSelects() {
   $("fOcasion").innerHTML = opt("", "🎁 Ocasión: todas", !filtro.oc) +
     OCASIONES.filter(o => o.tipo === "ocasion").map(o => opt(o.id, `${o.icono} ${o.nombre}`, filtro.oc === o.id)).join("");
 }
+function primeraSeccion() {
+  const temps = seccionesTemporada();
+  // Aterriza en la temporada solo si ya tiene productos; si no, en "Ramos"
+  if (temps.length && CATALOGO.some(p => p.categoria === temps[0].id)) return temps[0].id;
+  return "ramos";
+}
 function pintarTabs() {
   const sec = id => SECCIONES.find(x => x.id === id);
+  if (!filtro.sec && !filtro.group) filtro.sec = primeraSeccion();
   const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
   const temps = seccionesTemporada();
-  const tabs = [{ id:"", nombre:"Todo" }, ...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
+  const tabs = [...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
   $("tabs").innerHTML = tabs.map(t => `<button class="tab${t.temporada ? " tab-temp" : ""}" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.temporada ? "✨ " : ""}${t.nombre}</button>`).join("");
   const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
   $("ocasiones").style.display = sub.length ? "" : "none";
