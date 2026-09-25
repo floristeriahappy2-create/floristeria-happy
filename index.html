@@ -100,6 +100,15 @@
   .aviso { margin-top:12px; padding:12px; border-radius:8px; background:var(--rosado); display:none; }
   pre { white-space:pre-wrap; word-break:break-word; font-size:12px; background:rgba(0,0,0,.05); padding:10px; border-radius:8px; margin:8px 0 0; }
   footer { text-align:center; padding:30px 20px 90px; border-top:1px solid var(--borde); margin-top:30px; }
+  .season-bar { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; padding:12px 16px; background:linear-gradient(90deg,#fff4d6,#ffe08a,#fff4d6); border-bottom:2px solid #e6b800; }
+  .season-btn { border:0; cursor:pointer; font-weight:800; font-size:16px; color:#7a3b00; background:linear-gradient(90deg,#ffd34d,#ffb300); padding:12px 22px; border-radius:30px; box-shadow:0 4px 14px rgba(230,150,0,.45); animation:seasonBlink 1s ease-in-out infinite; }
+  .season-btn:hover { filter:brightness(1.05); }
+  @keyframes seasonBlink { 0%,100%{ transform:scale(1); box-shadow:0 4px 14px rgba(230,150,0,.45); } 50%{ transform:scale(1.06); box-shadow:0 6px 22px rgba(230,150,0,.85); } }
+  @media (prefers-reduced-motion: reduce){ .season-btn{ animation:none; } }
+  @media (max-width:560px){ .season-btn{ font-size:15px; padding:11px 18px; } }
+  .temp-fila { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .temp-fila input[type=text] { flex:1; }
+  .temp-fila label { flex-direction:row; align-items:center; gap:6px; font-size:13px; white-space:nowrap; margin:0; }
   .foot-links { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:16px; }
   .foot-link { background:var(--rosado); border:0; color:var(--rojo); font-size:14px; font-weight:600; padding:10px 16px; border-radius:22px; cursor:pointer; }
   .foot-link:hover { background:var(--rojo); color:#fff; }
@@ -311,6 +320,8 @@
   <div class="head-r"><button id="verPedido" class="cart-badge">🛒 <span id="cartN">0</span> · S/ <span id="cartT">0.00</span></button></div>
 </header>
 
+<div id="seasonBar" class="season-bar oculto"></div>
+
 <section class="hero" id="hero">
   <div class="hero-bg"><div class="hb-layer" id="hb1"></div><div class="hb-layer" id="hb2"></div><video id="heroVideo" class="hb-video" muted loop playsinline></video></div>
   <div class="hero-content">
@@ -433,6 +444,10 @@
       <label class="ancho">Proceso de compra<textarea id="pProceso" rows="6"></textarea></label>
       <label class="ancho">Términos y condiciones<textarea id="pTerminos" rows="6"></textarea></label>
       <label class="ancho">Sobre nosotros<textarea id="pNosotros" rows="6"></textarea></label>
+      <h2 style="margin-top:22px">Temporada / Campaña</h2>
+      <p class="ayuda">Muestra un botón resaltante y parpadeante con la temporada actual (Día de la Madre, Día del Padre, San Valentín, Navidad, etc.). Escribe hasta 8 temporadas y marca "Mostrar" en la(s) que quieras que aparezca(n) ahora.</p>
+      <label style="flex-direction:row;align-items:center;gap:8px;font-size:15px;font-weight:600"><input type="checkbox" id="tempOn"> Activar botón(es) de temporada</label>
+      <div id="tempFilas" style="margin-top:10px"></div>
       <button class="primario" id="pGuardar" type="button">Guardar portada</button>
       <div class="aviso" id="pAviso"></div>
     </div>
@@ -613,7 +628,8 @@ let PEDIDOS = [], unsubPedidos = null;
 function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitulo: "Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.", imagenes: [], video: "", tarjeta: { alto: 22, ancho: 8, inicio: 11, area: 8.5 }, fuente: "elegante", maxMsg: 250, envioGratis: ENVIO_GRATIS_DESDE,
   procesoCompra: "1. Elige tus productos y agrégalos al carrito.\n2. Toca “Finalizar compra” y completa los datos de entrega.\n3. Elige tu forma de pago y realiza el pago.\n4. Envía tu pedido por WhatsApp y adjunta tu comprobante.\n5. Preparamos y entregamos tu pedido en la fecha y hora elegida.",
   terminos: "• Los pedidos se confirman una vez recibido el pago y el comprobante.\n• Las entregas se realizan en la fecha y franja horaria seleccionadas, sujetas a disponibilidad.\n• Las imágenes son referenciales; las flores pueden variar según temporada, manteniendo el valor del arreglo.\n• Para cambios o cancelaciones, contáctanos por WhatsApp con anticipación.",
-  nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto." }; }
+  nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto.",
+  tempOn: false, temporadas: [] }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
 const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
@@ -1359,8 +1375,29 @@ function actualizarLimites() {
   document.querySelectorAll('textarea[name="tarjeta"], textarea[name^="tarjeta_"]').forEach(t => { t.maxLength = max; });
   actualizarContadores();
 }
+function pintarSeasonBar() {
+  const sb = $("seasonBar"); if (!sb) return;
+  const arr = Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : [];
+  const activas = PORTADA.tempOn ? arr.filter(t => t && t.activo && (t.texto || "").trim()) : [];
+  if (activas.length) {
+    sb.innerHTML = activas.map(t => `<button class="season-btn" type="button" data-temp="1">${esc(t.texto)}</button>`).join("");
+    sb.classList.remove("oculto");
+  } else { sb.innerHTML = ""; sb.classList.add("oculto"); }
+}
+function pintarTempFilas() {
+  if (!$("tempFilas")) return;
+  const arr = Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : [];
+  const ej = ["🌸 Día de la Madre", "👔 Día del Padre", "❤️ San Valentín", "🎓 Graduaciones", "🎄 Navidad", "🌷 Primavera", "🎉 Fiestas Patrias", "💐 Temporada especial"];
+  let html = "";
+  for (let i = 0; i < 8; i++) {
+    const t = arr[i] || { texto: "", activo: false };
+    html += `<div class="temp-fila"><input type="text" id="temp${i}" placeholder="${esc(ej[i])}" value="${esc(t.texto || "")}"><label><input type="checkbox" id="tempAct${i}" ${t.activo ? "checked" : ""}> Mostrar</label></div>`;
+  }
+  $("tempFilas").innerHTML = html;
+}
 function aplicarPortada() {
   actualizarLimites();
+  pintarSeasonBar();
   if (!$("heroTitulo")) return;
   $("heroTitulo").textContent = PORTADA.titulo || "";
   $("heroSub").textContent = PORTADA.subtitulo || "";
@@ -1395,6 +1432,8 @@ function abrirPortadaAdmin() {
   $("pProceso").value = (PORTADA.procesoCompra != null) ? PORTADA.procesoCompra : def.procesoCompra;
   $("pTerminos").value = (PORTADA.terminos != null) ? PORTADA.terminos : def.terminos;
   $("pNosotros").value = (PORTADA.nosotros != null) ? PORTADA.nosotros : def.nosotros;
+  $("tempOn").checked = !!PORTADA.tempOn;
+  pintarTempFilas();
 }
 function pintarAcceso() {
   const dentro = !nube || !!usuario;
@@ -1551,12 +1590,23 @@ document.addEventListener("click", e => {
 $("infoClose").addEventListener("click", () => $("infoModal").classList.remove("abierto"));
 $("infoModal").addEventListener("click", e => { if (e.target.id === "infoModal") $("infoModal").classList.remove("abierto"); });
 if ($("fabLlamar")) $("fabLlamar").href = "tel:+" + WHATSAPP;
+// Botón de temporada → llevar al catálogo
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-temp]")) return;
+  const visible = el => el && el.offsetParent !== null;
+  const navD = document.querySelector(".nav-desktop"), navM = document.querySelector(".nav-mobile");
+  const dest = visible(navD) ? navD : (visible(navM) ? navM : $("grid"));
+  if (dest) dest.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs,
     tarjeta: { alto: Number($("tAlto").value) || 22, ancho: Number($("tAncho").value) || 8, inicio: Number($("tInicio").value) || 0, area: Number($("tArea").value) || 8.5 },
     fuente: $("pFuente").value, maxMsg: Number($("pMax").value) || 250, envioGratis: Math.max(0, Number($("pEnvio").value) || 0),
     procesoCompra: $("pProceso").value, terminos: $("pTerminos").value, nosotros: $("pNosotros").value };
+  obj.tempOn = $("tempOn").checked;
+  obj.temporadas = [];
+  for (let i = 0; i < 8; i++) { obj.temporadas.push({ texto: ($("temp" + i) ? $("temp" + i).value.trim() : ""), activo: !!($("tempAct" + i) && $("tempAct" + i).checked) }); }
   if (!nube) { alert("Necesitas la nube (Firebase) para guardar la portada."); return; }
   nube.db.collection("config").doc("portada").set(obj).then(() => { PORTADA = obj; aplicarPortada(); avisar("pAviso", "✅ Portada guardada. Ya se ve en tu tienda."); }).catch(e => avisar("pAviso", "⚠️ " + e.message));
 });
