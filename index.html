@@ -1054,6 +1054,10 @@ document.addEventListener("click", e => {
     if (p && confirm(`¿Eliminar "${p.nombre}"?`)) { CATALOGO = CATALOGO.filter(x => x !== p); eliminarRemoto(p.id); refrescar(); }
   }
   if (d.estado) { const [pid, est] = d.estado.split("|"); cambiarEstado(pid, est); }
+  if (d.delped) {
+    const p = PEDIDOS.find(x => x.id === d.delped);
+    if (confirm(`¿Eliminar de forma permanente el pedido de "${p ? p.cliente : ""}"?\n\nEsto no se puede deshacer. Úsalo solo para pedidos de prueba o equivocados.`)) eliminarPedido(d.delped);
+  }
   if (d.imprmsg) imprimirMensaje(d.imprmsg);
   if (d.imprdatos) imprimirDatos(d.imprdatos);
   if (d.datoswa) datosWhatsApp(d.datoswa);
@@ -1226,6 +1230,10 @@ function cambiarEstado(id, estado) {
   nube.db.collection("pedidos").doc(id).update({ estado }).catch(e => alert("No se pudo actualizar: " + e.message));
   if (PEDIDOS_URL) fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ accion: "estado", pedido_id: id, estado }) }).catch(() => {});
 }
+function eliminarPedido(id) {
+  if (!nube) { alert("Necesitas la nube (Firebase) para eliminar pedidos."); return; }
+  nube.db.collection("pedidos").doc(id).delete().catch(e => alert("No se pudo eliminar: " + e.message));
+}
 function desdePeriodo(per) {
   const now = new Date();
   if (per === "semana") { const d = new Date(now); const dia = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dia); d.setHours(0, 0, 0, 0); return d; }
@@ -1252,6 +1260,7 @@ function pintarPedidos() {
         <button class="secundario" data-imprmsg="${p.id}">💌 Imprimir mensaje</button>
         <button class="secundario" data-imprdatos="${p.id}">🖨️ Imprimir datos</button>
         <button class="secundario" data-datoswa="${p.id}">📲 Datos por WhatsApp</button>
+        <button class="peligro" data-delped="${p.id}">🗑️ Eliminar</button>
       </div>
     </div>`;
   }).join("") : "<p>No hay pedidos en este periodo.</p>";
