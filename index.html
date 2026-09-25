@@ -259,8 +259,14 @@
   .ci-step span { min-width:26px; text-align:center; }
   .ci-del { margin-left:auto; background:none; border:0; font-size:18px; cursor:pointer; }
   .cart-foot { border-top:1px solid var(--borde); padding:16px 20px; }
-  .cart-sub { display:flex; justify-content:space-between; align-items:center; font-size:16px; margin-bottom:12px; }
-  .cart-sub b { color:var(--rojo); font-size:20px; }
+  .cart-sub { display:flex; justify-content:space-between; align-items:center; font-size:16px; margin-bottom:10px; font-weight:700; color:var(--rojo); }
+  .cart-sub b { color:var(--rojo); font-size:22px; }
+  .envio-msg { font-size:15px; color:var(--texto); margin:2px 0 8px; }
+  .envio-msg.gratis { color:var(--rojo); font-weight:700; }
+  .envio-bar { height:9px; background:var(--rosado); border-radius:6px; overflow:hidden; margin-bottom:14px; }
+  .envio-fill { height:100%; width:0%; background:var(--rojo); border-radius:6px; transition:width .35s ease; }
+  .cart-btn2 { display:block; width:100%; background:var(--rojo); color:#fff; border:0; padding:15px; border-radius:30px; font-size:17px; font-weight:700; cursor:pointer; margin-top:10px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+  .cart-btn2:hover { background:var(--rojo2); }
   .cart-foot .primario { width:100%; padding:14px; font-size:16px; }
   @media (max-width:500px){ .cart-panel { width:100%; max-width:100%; } }
 
@@ -477,8 +483,11 @@
     <div class="cart-head"><h3>🛒 Carrito de compra</h3><button id="cartClose" aria-label="Cerrar">✕</button></div>
     <div class="cart-items" id="cartItems"></div>
     <div class="cart-foot">
-      <div class="cart-sub"><span>SUBTOTAL</span><b id="cartSubtotal">S/ 0.00</b></div>
-      <button class="primario" id="finalizarCompra">Finalizar compra</button>
+      <div class="cart-sub"><span>SUBTOTAL:</span><b id="cartSubtotal">S/ 0.00</b></div>
+      <div class="envio-msg" id="envioMsg"></div>
+      <div class="envio-bar" id="envioBar"><div class="envio-fill" id="envioFill"></div></div>
+      <button class="cart-btn2" id="verCarrito" type="button">Ver carrito</button>
+      <button class="cart-btn2" id="finalizarCompra" type="button">Finalizar compra</button>
     </div>
   </div>
 </div>
@@ -504,6 +513,7 @@
 <script>
 const WHATSAPP = "51941905462";
 const CUPO_MAX = 10;
+const ENVIO_GRATIS_DESDE = 150;   // 💡 Monto (S/) a partir del cual el envío es gratis. Cambia este número según tu política.
 let cuposCache = {};
 function franjaCod(f) { return ({ "09:00 - 13:00": "t1", "13:00 - 17:00": "t2", "17:00 - 21:00": "t3" })[f] || "tx"; }
 function cupoId(fecha, franja) { return fecha + "_" + franjaCod(franja); }
@@ -835,6 +845,10 @@ function toast(msg) {
   const t = $("toast"); t.textContent = msg; t.classList.add("ver");
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("ver"), 2200);
 }
+function abrirCarrito() {
+  pintarCartModal();
+  $("cartModal").classList.add("abierto");
+}
 function cambiar(id, delta) {
   const p = CATALOGO.find(x => x.id === id); if (!p) return;
   if (delta > 0 && p.stock <= 0) { alert(p.nombre + " está agotado"); return; }
@@ -844,8 +858,6 @@ function cambiar(id, delta) {
   if (delta > 0) {
     toast("✓ " + p.nombre + " agregado a tu pedido");
     cerrarDetalle();
-    const mp = document.getElementById("miPedido");
-    if (mp) setTimeout(() => mp.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
   }
 }
 function pintarCartModal() {
@@ -866,6 +878,21 @@ function pintarCartModal() {
   }).join("");
   $("cartItems").innerHTML = carrito.size ? filas : '<p style="text-align:center;color:var(--suave);padding:40px 0">Tu carrito está vacío.<br>Agrega productos del catálogo.</p>';
   $("cartSubtotal").textContent = "S/ " + soles(total);
+  // Barra de envío gratis
+  const meta = ENVIO_GRATIS_DESDE, falta = Math.max(0, meta - total);
+  const pct = meta > 0 ? Math.min(100, (total / meta) * 100) : 100;
+  const msg = $("envioMsg"), fill = $("envioFill"), bar = $("envioBar");
+  if (msg && fill && bar) {
+    if (total <= 0) {
+      msg.textContent = ""; msg.classList.remove("gratis"); fill.style.width = "0%"; bar.style.display = "none";
+    } else if (falta > 0) {
+      msg.textContent = `Añade S/ ${soles(falta)} más y obtén envío GRATIS!`;
+      msg.classList.remove("gratis"); fill.style.width = pct + "%"; bar.style.display = "block";
+    } else {
+      msg.textContent = "🎉 ¡Genial! Tienes envío GRATIS";
+      msg.classList.add("gratis"); fill.style.width = "100%"; bar.style.display = "block";
+    }
+  }
 }
 function pintarCarrito() {
   let total = 0;
@@ -879,12 +906,19 @@ function pintarCarrito() {
   $("carrito").innerHTML = filas.join("") || '<tr><td colspan="3">Tu pedido está vacío. Agrega productos del catálogo.</td></tr>';
   $("total").textContent = soles(total);
   if ($("cartN")) { $("cartN").textContent = [...carrito.values()].reduce((a, b) => a + b, 0); $("cartT").textContent = soles(total); }
-  // Mostrar "Tu pedido" y "Datos de entrega" solo cuando ya hay productos elegidos
-  const hayProductos = carrito.size > 0;
-  if ($("secPedido")) $("secPedido").classList.toggle("oculto", !hayProductos);
-  if ($("secEntrega")) $("secEntrega").classList.toggle("oculto", !hayProductos);
+  // Si el carrito queda vacío, ocultamos "Tu pedido" y "Datos de entrega"
+  if (carrito.size === 0) {
+    if ($("secPedido")) $("secPedido").classList.add("oculto");
+    if ($("secEntrega")) $("secEntrega").classList.add("oculto");
+  }
   pintarCartModal();
   if ($("multi") && $("multi").checked) pintarEntregasMulti();
+}
+function mostrarPedidoYEntrega() {
+  if ($("secPedido")) $("secPedido").classList.remove("oculto");
+  if ($("secEntrega")) $("secEntrega").classList.remove("oculto");
+  const t = $("secPedido") || $("secEntrega");
+  if (t) setTimeout(() => t.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
 }
 
 /* ---------- Administrador ---------- */
@@ -992,7 +1026,7 @@ document.addEventListener("click", e => {
   if (d.gal) { if (galFotos.length) { galIdx = (galIdx + Number(d.gal) + galFotos.length) % galFotos.length; actualizarGaleria(); } return; }
   if (d.qmenos !== undefined) { detQtyN = Math.max(1, detQtyN - 1); $("detQty").textContent = detQtyN; $("detTotal").textContent = soles(detPrecio * detQtyN); return; }
   if (d.qmas !== undefined) { detQtyN = detQtyN + 1; $("detQty").textContent = detQtyN; $("detTotal").textContent = soles(detPrecio * detQtyN); return; }
-  if (d.addcart) { cambiar(+d.addcart, detQtyN); return; }
+  if (d.addcart) { cambiar(+d.addcart, detQtyN); abrirCarrito(); return; }
   if (d.cmas) { carrito.set(+d.cmas, (carrito.get(+d.cmas) || 0) + 1); pintarCarrito(); return; }
   if (d.cmenos) { const n = (carrito.get(+d.cmenos) || 0) - 1; n <= 0 ? carrito.delete(+d.cmenos) : carrito.set(+d.cmenos, n); pintarCarrito(); return; }
   if (d.quitar) { carrito.delete(+d.quitar); pintarCarrito(); return; }
@@ -1007,7 +1041,7 @@ document.addEventListener("click", e => {
     if (filtro.group === "tipo") filtro.tipo = d.chip; else if (filtro.group === "ocasion") filtro.oc = d.chip;
     pintarTabs(); pintarGrid();
   }
-  if (d.add) cambiar(+d.add, 1);
+  if (d.add) { cambiar(+d.add, 1); abrirCarrito(); }
   if (d.mas) cambiar(+d.mas, 1);
   if (d.menos) cambiar(+d.menos, -1);
   if (d.editar) { modoEdicion(CATALOGO.find(p => p.id === +d.editar)); $("admin").scrollIntoView({ behavior:"smooth" }); }
@@ -1458,7 +1492,8 @@ $("dPeriodo").addEventListener("change", pintarDashboard);
 $("verPedido").addEventListener("click", () => { pintarCartModal(); $("cartModal").classList.add("abierto"); });
 $("cartClose").addEventListener("click", () => $("cartModal").classList.remove("abierto"));
 $("cartModal").addEventListener("click", e => { if (e.target.id === "cartModal") $("cartModal").classList.remove("abierto"); });
-$("finalizarCompra").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); const f = $("form"); if (f) f.scrollIntoView({ behavior: "smooth", block: "start" }); });
+$("verCarrito").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); mostrarPedidoYEntrega(); });
+$("finalizarCompra").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); mostrarPedidoYEntrega(); });
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs,
