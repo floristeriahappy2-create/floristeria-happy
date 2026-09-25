@@ -781,6 +781,9 @@ function leerLista(v, catalogo) {
 }
 function leerSeccion(v) {
   const t = sinTilde(v); if (!t) return "";
+  if (/^temp\d+$/.test(t)) return t;
+  const tp = seccionesTemporada().find(x => sinTilde(x.nombre) === t);
+  if (tp) return tp.id;
   if (SECCIONES.some(x => x.id === t)) return t;
   if (t.includes("complement")) return "complementos";
   if (t.includes("seca")) return "flores-secas";
