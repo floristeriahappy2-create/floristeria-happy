@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Floristería Happy — Entregamos sentimientos</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Dancing+Script:wght@600&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#f7f4f4; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e3dada;
@@ -229,6 +229,7 @@
   .mon-badge { display:inline-block; margin-top:10px; padding:3px 12px; border-radius:14px; font-size:14px; font-weight:700; }
   .mon-vacio { grid-column:1/-1; text-align:center; color:#8a7d81; font-size:20px; padding:60px 0; }
 
+  .cont-msg { display:block; font-size:12px; color:var(--suave); margin-top:4px; text-align:right; }
   .aviso-cupo { display:none; color:var(--rojo); font-size:13px; font-weight:600; background:var(--rosado); border-radius:8px; padding:8px 12px; }
 
   #printArea { display:none; }
@@ -377,6 +378,8 @@
         <label>Ancho de la tarjeta (cm)<input id="tAncho" type="number" step="0.1" value="8"></label>
         <label>El mensaje empieza a (cm desde arriba)<input id="tInicio" type="number" step="0.1" value="11"></label>
         <label>Alto del área del mensaje (cm)<input id="tArea" type="number" step="0.1" value="8.5"></label>
+        <label>Tipo de letra del mensaje<select id="pFuente"><option value="elegante">Elegante (serif)</option><option value="manuscrita">Manuscrita (cursiva)</option><option value="moderna">Moderna (sans)</option></select></label>
+        <label>Máximo de caracteres del mensaje<input id="pMax" type="number" min="50" step="10" value="250"></label>
       </div>
       <p class="ayuda">Imágenes de fondo (se muestran en movimiento). Ideal: horizontales y de buena luz.</p>
       <div class="acciones">
@@ -440,7 +443,7 @@
           <label>Fecha de entrega<input name="fecha" type="date"></label>
           <label>Franja horaria<select name="franja"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
           <div class="ancho aviso-cupo" id="avisoCupoUnica"></div>
-          <label class="ancho">Mensaje para la tarjeta<textarea name="tarjeta" rows="2"></textarea></label>
+          <label class="ancho">Mensaje para la tarjeta<textarea name="tarjeta" rows="2"></textarea><small class="cont-msg"></small></label>
         </div>
       </div>
 
@@ -537,8 +540,9 @@ const FIREBASE_CONFIG = {
 */
 let nube = null;      // { db, auth } cuando Firebase está activo
 let PEDIDOS = [], unsubPedidos = null;
-function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitulo: "Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.", imagenes: [], video: "", tarjeta: { alto: 22, ancho: 8, inicio: 11, area: 8.5 } }; }
+function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitulo: "Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.", imagenes: [], video: "", tarjeta: { alto: 22, ancho: 8, inicio: 11, area: 8.5 }, fuente: "elegante", maxMsg: 250 }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
+const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
 const KEY = "happy_catalogo_v7";
 const SECCIONES = [
@@ -1106,9 +1110,9 @@ function imprimirDatos(id) {
     </div>`).join("");
   window.print();
 }
-function ajustarLetra(text, wPx, hPx) {
+function ajustarLetra(text, wPx, hPx, font) {
   const m = document.createElement("div");
-  m.style.cssText = `position:absolute;left:-99999px;top:0;width:${wPx}px;overflow:hidden;font-family:Georgia,'Times New Roman',serif;line-height:1.3;padding:6mm;box-sizing:border-box;text-align:center;word-break:break-word;`;
+  m.style.cssText = `position:absolute;left:-99999px;top:0;width:${wPx}px;overflow:hidden;font-family:${font};line-height:1.3;padding:6mm;box-sizing:border-box;text-align:center;word-break:break-word;`;
   m.innerHTML = esc(text).replace(/\n/g, "<br>");
   document.body.appendChild(m);
   let fs = 64; m.style.fontSize = fs + "px";
@@ -1121,15 +1125,16 @@ function imprimirMensaje(id) {
   const ents = (p.entregas || []).filter(e => e.tarjeta);
   if (!ents.length) { alert("Este pedido no tiene mensaje de tarjeta."); return; }
   const t = (PORTADA && PORTADA.tarjeta) || { alto: 22, ancho: 8, inicio: 11, area: 8.5 };
+  const font = FUENTES[PORTADA.fuente] || FUENTES.elegante;
   const pxCm = 37.795, wPx = t.ancho * pxCm, hPx = t.area * pxCm;
   const estilo = `<style>
     @page { size: ${t.ancho}cm ${t.alto}cm; margin: 0; }
     .msg-page { position:relative; width:${t.ancho}cm; height:${t.alto}cm; page-break-after:always; }
     .msg-box { position:absolute; left:0; top:${t.inicio}cm; width:${t.ancho}cm; height:${t.area}cm; display:flex; align-items:center; justify-content:center; text-align:center; padding:6mm; box-sizing:border-box; }
-    .msg-box .m { font-family:Georgia,'Times New Roman',serif; line-height:1.3; color:#000; word-break:break-word; }
+    .msg-box .m { font-family:${font}; line-height:1.3; color:#000; word-break:break-word; }
   </style>`;
   $("printArea").innerHTML = estilo + ents.map(e => {
-    const fs = ajustarLetra(e.tarjeta, wPx, hPx);
+    const fs = ajustarLetra(e.tarjeta, wPx, hPx, font);
     return `<div class="msg-page"><div class="msg-box"><div class="m" style="font-size:${fs}px">${esc(e.tarjeta).replace(/\n/g, "<br>")}</div></div></div>`;
   }).join("");
   window.print();
@@ -1210,7 +1215,23 @@ function leerFotoHero(file) {
     img.onerror = () => mal(new Error("No se pudo leer la imagen")); img.src = url;
   });
 }
+function limiteMsg() { return (PORTADA && PORTADA.maxMsg) || 250; }
+function actualizarContadores() {
+  const max = limiteMsg();
+  document.querySelectorAll(".cont-msg").forEach(c => {
+    const ta = (c.closest("label") || c.parentElement).querySelector("textarea"); if (!ta) return;
+    const n = ta.value.length;
+    c.textContent = n + " / " + max + (n >= max ? "  ·  Llegaste al límite" : "");
+    c.style.color = n >= max ? "var(--rojo)" : "var(--suave)";
+  });
+}
+function actualizarLimites() {
+  const max = limiteMsg();
+  document.querySelectorAll('textarea[name="tarjeta"], textarea[name^="tarjeta_"]').forEach(t => { t.maxLength = max; });
+  actualizarContadores();
+}
 function aplicarPortada() {
+  actualizarLimites();
   if (!$("heroTitulo")) return;
   $("heroTitulo").textContent = PORTADA.titulo || "";
   $("heroSub").textContent = PORTADA.subtitulo || "";
@@ -1239,6 +1260,7 @@ function abrirPortadaAdmin() {
   portadaImgs = [...(PORTADA.imagenes || [])]; pintarPortadaThumbs();
   const t = PORTADA.tarjeta || { alto: 22, ancho: 8, inicio: 11, area: 8.5 };
   $("tAlto").value = t.alto; $("tAncho").value = t.ancho; $("tInicio").value = t.inicio; $("tArea").value = t.area;
+  $("pFuente").value = PORTADA.fuente || "elegante"; $("pMax").value = PORTADA.maxMsg || 250;
 }
 function pintarAcceso() {
   const dentro = !nube || !!usuario;
@@ -1327,6 +1349,7 @@ $("form").addEventListener("submit", e => {
 });
 
 $("orden").addEventListener("input", pintarGrid);
+$("form").addEventListener("input", e => { if ((e.target.name || "").indexOf("tarjeta") === 0) actualizarContadores(); });
 $("buscar").addEventListener("input", () => {
   const q = $("buscar").value.trim();
   pintarGrid();
@@ -1362,11 +1385,12 @@ function pintarEntregasMulti() {
         <label>Fecha<input name="fecha_${i}" type="date" required></label>
         <label>Franja horaria<select name="franja_${i}"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
         <div style="grid-column:1/-1" class="aviso-cupo" id="avisoCupo_${i}"></div>
-        <label style="grid-column:1/-1">Mensaje para la tarjeta<textarea name="tarjeta_${i}" rows="2"></textarea></label>
+        <label style="grid-column:1/-1">Mensaje para la tarjeta<textarea name="tarjeta_${i}" rows="2"></textarea><small class="cont-msg"></small></label>
       </div>
     </div>`).join("") : "<p>Agrega productos a tu pedido primero.</p>";
   const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
   $("entregasMulti").querySelectorAll('[type=date]').forEach(d => d.min = hoy.toISOString().slice(0, 10));
+  actualizarLimites();
 }
 $("multi").addEventListener("change", () => {
   const on = $("multi").checked;
@@ -1386,7 +1410,8 @@ $("finalizarCompra").addEventListener("click", () => { if (!carrito.size) { aler
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs,
-    tarjeta: { alto: Number($("tAlto").value) || 22, ancho: Number($("tAncho").value) || 8, inicio: Number($("tInicio").value) || 0, area: Number($("tArea").value) || 8.5 } };
+    tarjeta: { alto: Number($("tAlto").value) || 22, ancho: Number($("tAncho").value) || 8, inicio: Number($("tInicio").value) || 0, area: Number($("tArea").value) || 8.5 },
+    fuente: $("pFuente").value, maxMsg: Number($("pMax").value) || 250 };
   if (!nube) { alert("Necesitas la nube (Firebase) para guardar la portada."); return; }
   nube.db.collection("config").doc("portada").set(obj).then(() => { PORTADA = obj; aplicarPortada(); avisar("pAviso", "✅ Portada guardada. Ya se ve en tu tienda."); }).catch(e => avisar("pAviso", "⚠️ " + e.message));
 });
