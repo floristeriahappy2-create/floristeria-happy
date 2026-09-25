@@ -129,6 +129,8 @@
   .tabs { display:flex; gap:2px; overflow-x:auto; -webkit-overflow-scrolling:touch; border-bottom:2px solid var(--borde); margin-bottom:12px; scrollbar-width:thin; scroll-snap-type:x proximity; }
   .tab { flex:0 0 auto; background:none; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; padding:12px 14px; min-height:44px; font-size:15px; color:var(--suave); white-space:nowrap; scroll-snap-align:start; }
   .tab[aria-selected="true"] { color:var(--rojo); border-bottom-color:var(--rojo); font-weight:600; }
+  .tab.tab-temp { color:#7a3b00; font-weight:800; background:linear-gradient(90deg,#ffe08a,#ffc94d); border-radius:20px; padding:8px 16px; margin:2px 2px -2px; border-bottom:0; animation:seasonBlink 1.2s ease-in-out infinite; }
+  .tab.tab-temp[aria-selected="true"] { color:#7a3b00; border-bottom:0; box-shadow:0 0 0 2px #e6a700 inset; }
   .ocasiones { display:flex; flex-wrap:wrap; gap:8px; padding:2px 0 12px; margin-bottom:6px; }
   .chip { flex:0 0 auto; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); padding:10px 16px; min-height:42px; border-radius:22px; font-size:15px; white-space:nowrap; }
   .chip[aria-pressed="true"] { background:var(--rojo); border-color:var(--rojo); color:#fff; }
@@ -423,7 +425,8 @@
       <p class="ayuda">Para un video de tu PC: súbelo a tu GitHub (junto al index.html) y aquí escribe solo el nombre, por ejemplo <b>portada.mp4</b>. También sirve un enlace directo .mp4 o .webm.</p>
       <h2 style="margin-top:22px">Envío gratis</h2>
       <label class="ancho">Envío gratis desde (S/)<input id="pEnvio" type="number" min="0" step="1" value="150"></label>
-      <p class="ayuda">Si el pedido llega o supera este monto, en el carrito el cliente ve la barra de <b>"envío GRATIS"</b>. Escribe <b>0</b> si no quieres mostrar esa barra.</p>
+      <label class="ancho">Costo del delivery (S/)<input id="pDelivery" type="number" min="0" step="1" value="7"></label>
+      <p class="ayuda">Si el pedido llega o supera el monto de "Envío gratis desde", el cliente ve <b>"envío GRATIS"</b>. Si es menor, verá que debe añadir el costo del delivery. Escribe <b>0</b> en "Envío gratis desde" si no quieres mostrar esa barra.</p>
       <h2 style="margin-top:22px">Impresión del mensaje (medidas de tu tarjeta, en cm)</h2>
       <p class="ayuda">El mensaje se centra y su tamaño se ajusta solo al espacio. Calibra estas medidas una sola vez.</p>
       <div class="grid2">
@@ -629,7 +632,7 @@ function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitul
   procesoCompra: "1. Elige tus productos y agrégalos al carrito.\n2. Toca “Finalizar compra” y completa los datos de entrega.\n3. Elige tu forma de pago y realiza el pago.\n4. Envía tu pedido por WhatsApp y adjunta tu comprobante.\n5. Preparamos y entregamos tu pedido en la fecha y hora elegida.",
   terminos: "• Los pedidos se confirman una vez recibido el pago y el comprobante.\n• Las entregas se realizan en la fecha y franja horaria seleccionadas, sujetas a disponibilidad.\n• Las imágenes son referenciales; las flores pueden variar según temporada, manteniendo el valor del arreglo.\n• Para cambios o cancelaciones, contáctanos por WhatsApp con anticipación.",
   nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto.",
-  tempOn: false, temporadas: [] }; }
+  tempOn: false, temporadas: [], deliveryCosto: 7 }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
 const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
@@ -788,13 +791,23 @@ function leerSeccion(v) {
   if (t.includes("ramo") || t.includes("bouquet")) return "ramos";
   return "";
 }
-const nombreSeccion = id => SECCIONES.find(x => x.id === id)?.nombre || "";
+function seccionesTemporada() {
+  if (!PORTADA || !PORTADA.tempOn) return [];
+  const arr = Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : [];
+  return arr.map((t, i) => (t && t.activo && (t.texto || "").trim()) ? { id: "temp" + i, nombre: (t.texto || "").trim(), icono: "✨", temporada: true } : null).filter(Boolean);
+}
+const nombreSeccion = id => {
+  const s = SECCIONES.find(x => x.id === id); if (s) return s.nombre;
+  const m = /^temp(\d+)$/.exec(id || ""); if (m) { const t = ((PORTADA && PORTADA.temporadas) || [])[+m[1]]; return t ? (t.texto || "").trim() : ""; }
+  return "";
+};
 const tipoOcasion = id => OCASIONES.find(o => o.id === id)?.tipo;
 const nombreTipo = id => TIPOS.find(t => t.id === id)?.nombre || id;
 const nombreOcasion = id => OCASIONES.find(o => o.id === id)?.nombre || id;
 function pintarSelects() {
   const opt = (val, label, sel) => `<option value="${val}" ${sel ? "selected" : ""}>${label}</option>`;
   $("fSeccion").innerHTML = opt("", "📋 Todas las secciones", !filtro.sec) +
+    seccionesTemporada().map(x => opt(x.id, `✨ ${x.nombre}`, filtro.sec === x.id)).join("") +
     SECCIONES.map(x => opt(x.id, `${x.icono} ${x.nombre}`, filtro.sec === x.id)).join("");
   $("fTipo").innerHTML = opt("", "🌸 Tipo de flor: todas", !filtro.tipo) +
     TIPOS.map(t => opt(t.id, `${t.icono} ${t.nombre}`, filtro.tipo === t.id)).join("");
@@ -804,8 +817,9 @@ function pintarSelects() {
 function pintarTabs() {
   const sec = id => SECCIONES.find(x => x.id === id);
   const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
-  const tabs = [{ id:"", nombre:"Todo" }, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
-  $("tabs").innerHTML = tabs.map(t => `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.nombre}</button>`).join("");
+  const temps = seccionesTemporada();
+  const tabs = [{ id:"", nombre:"Todo" }, ...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
+  $("tabs").innerHTML = tabs.map(t => `<button class="tab${t.temporada ? " tab-temp" : ""}" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.temporada ? "✨ " : ""}${t.nombre}</button>`).join("");
   const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
   $("ocasiones").style.display = sub.length ? "" : "none";
   const val = filtro.group === "tipo" ? filtro.tipo : filtro.group === "ocasion" ? filtro.oc : "";
@@ -838,7 +852,12 @@ function leerFoto(file) {
 
 /* ---------- Tienda ---------- */
 function pintarSecciones() {
-  $("selSeccion").innerHTML = SECCIONES.map(x => `<option value="${x.id}">${x.nombre}</option>`).join("") + `<option value="">Ninguna (solo en ocasiones)</option>`;
+  const cur = $("selSeccion") ? $("selSeccion").value : "";
+  const temps = seccionesTemporada();
+  $("selSeccion").innerHTML = SECCIONES.map(x => `<option value="${x.id}">${x.nombre}</option>`).join("")
+    + temps.map(x => `<option value="${x.id}">✨ ${x.nombre}</option>`).join("")
+    + `<option value="">Ninguna (solo en ocasiones)</option>`;
+  if (cur && [...$("selSeccion").options].some(o => o.value === cur)) $("selSeccion").value = cur;
 }
 function fotoHTML(p, cls) {
   return p.foto ? `<img class="${cls||""}" src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy">` : `<div class="${cls||""}">🌹</div>`;
@@ -950,20 +969,23 @@ function pintarCartModal() {
   }).join("");
   $("cartItems").innerHTML = carrito.size ? filas : '<p style="text-align:center;color:var(--suave);padding:40px 0">Tu carrito está vacío.<br>Agrega productos del catálogo.</p>';
   $("cartSubtotal").textContent = "S/ " + soles(total);
-  // Barra de envío gratis (monto configurable desde Administrar / Portada)
+  // Barra de envío / delivery (montos configurables desde Administrar / Portada)
   const meta = (PORTADA && PORTADA.envioGratis != null) ? Number(PORTADA.envioGratis) : ENVIO_GRATIS_DESDE;
+  const costoDel = (PORTADA && PORTADA.deliveryCosto != null) ? Number(PORTADA.deliveryCosto) : 7;
   const falta = Math.max(0, meta - total);
   const pct = meta > 0 ? Math.min(100, (total / meta) * 100) : 100;
   const msg = $("envioMsg"), fill = $("envioFill"), bar = $("envioBar");
   if (msg && fill && bar) {
-    if (meta <= 0 || total <= 0) {
+    if (total <= 0) {
       msg.textContent = ""; msg.classList.remove("gratis"); fill.style.width = "0%"; bar.style.display = "none";
-    } else if (falta > 0) {
-      msg.textContent = `Añade S/ ${soles(falta)} más y obtén envío GRATIS!`;
-      msg.classList.remove("gratis"); fill.style.width = pct + "%"; bar.style.display = "block";
-    } else {
+    } else if (meta > 0 && total >= meta) {
       msg.textContent = "🎉 ¡Genial! Tienes envío GRATIS";
       msg.classList.add("gratis"); fill.style.width = "100%"; bar.style.display = "block";
+    } else {
+      msg.textContent = meta > 0
+        ? `🛵 Añade S/ ${soles(costoDel)} para el delivery · GRATIS desde S/ ${soles(meta)}`
+        : `🛵 Añade S/ ${soles(costoDel)} para el delivery`;
+      msg.classList.remove("gratis"); fill.style.width = (meta > 0 ? pct : 0) + "%"; bar.style.display = meta > 0 ? "block" : "none";
     }
   }
 }
@@ -1377,12 +1399,13 @@ function actualizarLimites() {
 }
 function pintarSeasonBar() {
   const sb = $("seasonBar"); if (!sb) return;
-  const arr = Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : [];
-  const activas = PORTADA.tempOn ? arr.filter(t => t && t.activo && (t.texto || "").trim()) : [];
+  const activas = seccionesTemporada();
   if (activas.length) {
-    sb.innerHTML = activas.map(t => `<button class="season-btn" type="button" data-temp="1">${esc(t.texto)}</button>`).join("");
+    sb.innerHTML = activas.map(t => `<button class="season-btn" type="button" data-tab="${t.id}">${esc(t.nombre)}</button>`).join("");
     sb.classList.remove("oculto");
   } else { sb.innerHTML = ""; sb.classList.add("oculto"); }
+  if ($("tabs")) { pintarTabs(); pintarSelects(); }
+  if ($("selSeccion")) pintarSecciones();
 }
 function pintarTempFilas() {
   if (!$("tempFilas")) return;
@@ -1428,6 +1451,7 @@ function abrirPortadaAdmin() {
   $("tAlto").value = t.alto; $("tAncho").value = t.ancho; $("tInicio").value = t.inicio; $("tArea").value = t.area;
   $("pFuente").value = PORTADA.fuente || "elegante"; $("pMax").value = PORTADA.maxMsg || 250;
   $("pEnvio").value = (PORTADA.envioGratis != null) ? PORTADA.envioGratis : ENVIO_GRATIS_DESDE;
+  $("pDelivery").value = (PORTADA.deliveryCosto != null) ? PORTADA.deliveryCosto : 7;
   const def = defaultPortada();
   $("pProceso").value = (PORTADA.procesoCompra != null) ? PORTADA.procesoCompra : def.procesoCompra;
   $("pTerminos").value = (PORTADA.terminos != null) ? PORTADA.terminos : def.terminos;
@@ -1590,19 +1614,19 @@ document.addEventListener("click", e => {
 $("infoClose").addEventListener("click", () => $("infoModal").classList.remove("abierto"));
 $("infoModal").addEventListener("click", e => { if (e.target.id === "infoModal") $("infoModal").classList.remove("abierto"); });
 if ($("fabLlamar")) $("fabLlamar").href = "tel:+" + WHATSAPP;
-// Botón de temporada → llevar al catálogo
+// Botón de temporada → llevar al catálogo (el filtro lo aplica el manejador de data-tab)
 document.addEventListener("click", e => {
-  if (!e.target.closest("[data-temp]")) return;
+  if (!e.target.closest(".season-btn")) return;
   const visible = el => el && el.offsetParent !== null;
   const navD = document.querySelector(".nav-desktop"), navM = document.querySelector(".nav-mobile");
   const dest = visible(navD) ? navD : (visible(navM) ? navM : $("grid"));
-  if (dest) dest.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (dest) setTimeout(() => dest.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
 });
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs,
     tarjeta: { alto: Number($("tAlto").value) || 22, ancho: Number($("tAncho").value) || 8, inicio: Number($("tInicio").value) || 0, area: Number($("tArea").value) || 8.5 },
-    fuente: $("pFuente").value, maxMsg: Number($("pMax").value) || 250, envioGratis: Math.max(0, Number($("pEnvio").value) || 0),
+    fuente: $("pFuente").value, maxMsg: Number($("pMax").value) || 250, envioGratis: Math.max(0, Number($("pEnvio").value) || 0), deliveryCosto: Math.max(0, Number($("pDelivery").value) || 0),
     procesoCompra: $("pProceso").value, terminos: $("pTerminos").value, nosotros: $("pNosotros").value };
   obj.tempOn = $("tempOn").checked;
   obj.temporadas = [];
