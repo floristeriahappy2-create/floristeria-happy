@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Floristería Happy — Entregamos sentimientos</title>
+<meta name="description" content="Flores frescas y arreglos únicos. Entregamos sentimientos. Haz tu pedido y te lo llevamos.">
+<!-- Vista previa al compartir el link (WhatsApp, Facebook, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Floristería Happy">
+<meta property="og:title" content="Floristería Happy — Entregamos sentimientos">
+<meta property="og:description" content="Flores frescas y arreglos únicos. Haz tu pedido y te lo llevamos.">
+<meta property="og:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://floristeriahappy2-create.github.io/floristeria-happy/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Floristería Happy — Entregamos sentimientos">
+<meta name="twitter:description" content="Flores frescas y arreglos únicos. Haz tu pedido y te lo llevamos.">
+<meta name="twitter:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.png">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Dancing+Script:wght@600&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -23,7 +37,7 @@
   .topsearch span { position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; }
   .head-r { text-align:right; }
   .cart-badge { background:rgba(255,255,255,.2); color:#fff; border:0; padding:10px 15px; border-radius:22px; font-size:14px; font-weight:600; cursor:pointer; }
-  @media (max-width:700px){ header { grid-template-columns:1fr; text-align:center; } .head-c{ order:-1; } .topsearch{ margin:8px auto 0; } .head-r{ text-align:center; margin-top:8px; } }
+  @media (max-width:700px){ header { grid-template-columns:1fr auto; align-items:center; text-align:left; } .head-l{ display:none; } .head-c{ order:0; justify-content:flex-start; gap:8px; } .head-c img{ width:46px; } .head-c h1{ font-size:19px; } .head-c p{ font-size:12px; } .head-r{ order:0; text-align:right; margin-top:0; } }
   .hero { position:relative; min-height:430px; display:flex; align-items:center; justify-content:center; overflow:hidden; text-align:center; color:#fff; }
   .hero-bg { position:absolute; inset:0; z-index:0; background:linear-gradient(135deg,var(--rojo),#7a141a); }
   .hb-layer { position:absolute; inset:0; background-size:cover; background-position:center; opacity:0; transition:opacity 1.2s ease; }
@@ -85,8 +99,18 @@
   form.grid2 .primario { grid-column:1 / -1; }
   .aviso { margin-top:12px; padding:12px; border-radius:8px; background:var(--rosado); display:none; }
   pre { white-space:pre-wrap; word-break:break-word; font-size:12px; background:rgba(0,0,0,.05); padding:10px; border-radius:8px; margin:8px 0 0; }
-  footer { text-align:center; padding:24px; }
-  footer button { background:none; border:0; color:var(--suave); font-size:13px; text-decoration:underline; }
+  footer { text-align:center; padding:30px 20px 90px; border-top:1px solid var(--borde); margin-top:30px; }
+  .foot-links { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:16px; }
+  .foot-link { background:var(--rosado); border:0; color:var(--rojo); font-size:14px; font-weight:600; padding:10px 16px; border-radius:22px; cursor:pointer; }
+  .foot-link:hover { background:var(--rojo); color:#fff; }
+  .foot-copy { color:var(--suave); font-size:13px; margin-bottom:12px; }
+  .foot-admin { background:none; border:0; color:var(--suave); font-size:13px; text-decoration:underline; cursor:pointer; }
+  .fab-llamar { position:fixed; right:16px; bottom:16px; z-index:80; display:inline-flex; align-items:center; gap:8px; background:#25a244; color:#fff; padding:14px 20px; border-radius:30px; font-weight:700; font-size:16px; text-decoration:none; box-shadow:0 5px 16px rgba(0,0,0,.28); }
+  .fab-llamar:hover { background:#1e8a3a; }
+  .fab-ico { font-size:20px; line-height:1; }
+  .info-panel { max-width:560px; }
+  .info-body { padding:22px; white-space:pre-wrap; line-height:1.6; color:var(--texto); font-size:15px; max-height:70vh; overflow-y:auto; }
+  @media (max-width:560px){ .fab-llamar { padding:15px; border-radius:50%; } .fab-llamar .fab-txt{ display:none; } .fab-ico{ font-size:22px; } }
   #admin { display:none; border:2px solid var(--rojo); }
   .acciones { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 4px; }
   .thumb { width:52px; height:52px; border-radius:8px; object-fit:cover; background:var(--rosado); display:flex; align-items:center; justify-content:center; font-size:24px; }
@@ -404,6 +428,11 @@
         <label class="secundario">➕ Subir imágenes<input type="file" id="pImgs" accept="image/*" multiple hidden></label>
       </div>
       <div class="porta-thumbs" id="pLista"></div>
+      <h2 style="margin-top:22px">Información de la tienda (pie de página)</h2>
+      <p class="ayuda">Estos textos aparecen al final de tu página, en los botones "Proceso de compra", "Términos y condiciones" y "Sobre nosotros". Edítalos cuando quieras.</p>
+      <label class="ancho">Proceso de compra<textarea id="pProceso" rows="6"></textarea></label>
+      <label class="ancho">Términos y condiciones<textarea id="pTerminos" rows="6"></textarea></label>
+      <label class="ancho">Sobre nosotros<textarea id="pNosotros" rows="6"></textarea></label>
       <button class="primario" id="pGuardar" type="button">Guardar portada</button>
       <div class="aviso" id="pAviso"></div>
     </div>
@@ -511,7 +540,26 @@
     <div class="detalle" id="detalle"></div>
   </div>
 </div>
-<footer><button id="btnAdmin" type="button">Administrar</button></footer>
+<footer>
+  <div class="foot-links">
+    <button class="foot-link" data-info="proceso" type="button">🛒 Proceso de compra</button>
+    <button class="foot-link" data-info="terminos" type="button">📄 Términos y condiciones</button>
+    <button class="foot-link" data-info="nosotros" type="button">🌸 Sobre nosotros</button>
+  </div>
+  <div class="foot-copy">Floristería Happy · Entregamos sentimientos</div>
+  <button id="btnAdmin" type="button" class="foot-admin">Administrar</button>
+</footer>
+
+<!-- Botón flotante para llamar directo -->
+<a class="fab-llamar" id="fabLlamar" href="tel:+51941905462" aria-label="Llamar"><span class="fab-ico">📞</span><span class="fab-txt">Llamar</span></a>
+
+<!-- Ventana de información (Proceso de compra / Términos / Sobre nosotros) -->
+<div id="infoModal" class="cart-modal">
+  <div class="cart-panel info-panel">
+    <div class="cart-head"><h3 id="infoTitulo">Información</h3><button id="infoClose" aria-label="Cerrar">✕</button></div>
+    <div class="info-body" id="infoBody"></div>
+  </div>
+</div>
 
 <script>
 const WHATSAPP = "51941905462";
@@ -562,7 +610,10 @@ const FIREBASE_CONFIG = {
 */
 let nube = null;      // { db, auth } cuando Firebase está activo
 let PEDIDOS = [], unsubPedidos = null;
-function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitulo: "Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.", imagenes: [], video: "", tarjeta: { alto: 22, ancho: 8, inicio: 11, area: 8.5 }, fuente: "elegante", maxMsg: 250, envioGratis: ENVIO_GRATIS_DESDE }; }
+function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitulo: "Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.", imagenes: [], video: "", tarjeta: { alto: 22, ancho: 8, inicio: 11, area: 8.5 }, fuente: "elegante", maxMsg: 250, envioGratis: ENVIO_GRATIS_DESDE,
+  procesoCompra: "1. Elige tus productos y agrégalos al carrito.\n2. Toca “Finalizar compra” y completa los datos de entrega.\n3. Elige tu forma de pago y realiza el pago.\n4. Envía tu pedido por WhatsApp y adjunta tu comprobante.\n5. Preparamos y entregamos tu pedido en la fecha y hora elegida.",
+  terminos: "• Los pedidos se confirman una vez recibido el pago y el comprobante.\n• Las entregas se realizan en la fecha y franja horaria seleccionadas, sujetas a disponibilidad.\n• Las imágenes son referenciales; las flores pueden variar según temporada, manteniendo el valor del arreglo.\n• Para cambios o cancelaciones, contáctanos por WhatsApp con anticipación.",
+  nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto." }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
 const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
@@ -1338,6 +1389,10 @@ function abrirPortadaAdmin() {
   $("tAlto").value = t.alto; $("tAncho").value = t.ancho; $("tInicio").value = t.inicio; $("tArea").value = t.area;
   $("pFuente").value = PORTADA.fuente || "elegante"; $("pMax").value = PORTADA.maxMsg || 250;
   $("pEnvio").value = (PORTADA.envioGratis != null) ? PORTADA.envioGratis : ENVIO_GRATIS_DESDE;
+  const def = defaultPortada();
+  $("pProceso").value = (PORTADA.procesoCompra != null) ? PORTADA.procesoCompra : def.procesoCompra;
+  $("pTerminos").value = (PORTADA.terminos != null) ? PORTADA.terminos : def.terminos;
+  $("pNosotros").value = (PORTADA.nosotros != null) ? PORTADA.nosotros : def.nosotros;
 }
 function pintarAcceso() {
   const dentro = !nube || !!usuario;
@@ -1479,11 +1534,27 @@ $("cartClose").addEventListener("click", () => $("cartModal").classList.remove("
 $("cartModal").addEventListener("click", e => { if (e.target.id === "cartModal") $("cartModal").classList.remove("abierto"); });
 $("verCarrito").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); mostrarPedidoYEntrega(); });
 $("finalizarCompra").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); mostrarPedidoYEntrega(); });
+// Ventana de información del pie (Proceso de compra / Términos / Sobre nosotros)
+const INFO_TIT = { proceso: "🛒 Proceso de compra", terminos: "📄 Términos y condiciones", nosotros: "🌸 Sobre nosotros" };
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-info]"); if (!b) return;
+  const k = b.dataset.info, def = defaultPortada();
+  const txt = k === "terminos" ? (PORTADA.terminos != null ? PORTADA.terminos : def.terminos)
+            : k === "nosotros" ? (PORTADA.nosotros != null ? PORTADA.nosotros : def.nosotros)
+            : (PORTADA.procesoCompra != null ? PORTADA.procesoCompra : def.procesoCompra);
+  $("infoTitulo").textContent = INFO_TIT[k] || "Información";
+  $("infoBody").textContent = txt || "";
+  $("infoModal").classList.add("abierto");
+});
+$("infoClose").addEventListener("click", () => $("infoModal").classList.remove("abierto"));
+$("infoModal").addEventListener("click", e => { if (e.target.id === "infoModal") $("infoModal").classList.remove("abierto"); });
+if ($("fabLlamar")) $("fabLlamar").href = "tel:+" + WHATSAPP;
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs,
     tarjeta: { alto: Number($("tAlto").value) || 22, ancho: Number($("tAncho").value) || 8, inicio: Number($("tInicio").value) || 0, area: Number($("tArea").value) || 8.5 },
-    fuente: $("pFuente").value, maxMsg: Number($("pMax").value) || 250, envioGratis: Math.max(0, Number($("pEnvio").value) || 0) };
+    fuente: $("pFuente").value, maxMsg: Number($("pMax").value) || 250, envioGratis: Math.max(0, Number($("pEnvio").value) || 0),
+    procesoCompra: $("pProceso").value, terminos: $("pTerminos").value, nosotros: $("pNosotros").value };
   if (!nube) { alert("Necesitas la nube (Firebase) para guardar la portada."); return; }
   nube.db.collection("config").doc("portada").set(obj).then(() => { PORTADA = obj; aplicarPortada(); avisar("pAviso", "✅ Portada guardada. Ya se ve en tu tienda."); }).catch(e => avisar("pAviso", "⚠️ " + e.message));
 });
