@@ -10,14 +10,14 @@
 <meta property="og:site_name" content="Floristería Happy">
 <meta property="og:title" content="Floristería Happy — Entregamos sentimientos">
 <meta property="og:description" content="Flores frescas y arreglos únicos. Haz tu pedido y te lo llevamos.">
-<meta property="og:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.png">
+<meta property="og:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://floristeriahappy2-create.github.io/floristeria-happy/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Floristería Happy — Entregamos sentimientos">
 <meta name="twitter:description" content="Flores frescas y arreglos únicos. Haz tu pedido y te lo llevamos.">
-<meta name="twitter:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.png">
+<meta name="twitter:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.jpeg">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Dancing+Script:wght@600&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -709,8 +709,10 @@ async function cargar() {
   if (await iniciarNube()) return;
   // 1) Lo guardado en este navegador (cambios del administrador)
   try { const g = localStorage.getItem(KEY); if (g) { CATALOGO = normalizar(JSON.parse(g)); return; } } catch {}
-  // 2) Archivo catalogo.json junto al index.html (GitHub Pages)
-  try { const r = await fetch("catalogo.json", { cache:"no-store" }); if (r.ok) { CATALOGO = normalizar(await r.json()); return; } } catch {}
+  // 2) Archivo catalogo.json junto al index.html (GitHub Pages). Probamos con y sin tilde.
+  for (const nombre of ["catalogo.json", "cat%C3%A1logo.json"]) {
+    try { const r = await fetch(nombre, { cache: "no-store" }); if (r.ok) { CATALOGO = normalizar(await r.json()); return; } } catch {}
+  }
   // 3) Ejemplo
   CATALOGO = normalizar(EJEMPLO);
 }
