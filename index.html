@@ -423,7 +423,7 @@
   </div>
   <div class="grid" id="grid"></div>
 
-  <section class="panel">
+  <section class="panel oculto" id="secPedido">
     <h2 id="miPedido">Tu pedido</h2>
     <div class="tabla"><table>
       <thead><tr><th>Producto</th><th>Cant.</th><th>Subtotal</th></tr></thead>
@@ -432,7 +432,7 @@
     <div class="total">Total: S/ <span id="total">0.00</span></div>
   </section>
 
-  <section class="panel">
+  <section class="panel oculto" id="secEntrega">
     <h2>Datos de entrega</h2>
     <form id="form" class="grid2">
       <label>Quien compra<input name="cliente" required></label>
@@ -804,8 +804,9 @@ function abrirDetalle(id) {
   $("modal").classList.add("abierto");
 }
 function cerrarDetalle() { $("modal").classList.remove("abierto"); }
+let busqueda = "";
 function pintarGrid() {
-  const q = $("buscar").value.toLowerCase();
+  const q = busqueda;
   const lista = CATALOGO.filter(p => p.nombre.toLowerCase().includes(q)
     && (filtro.sec ? p.categoria === filtro.sec : p.categoria !== "complementos")
     && (!filtro.tipo || p.tipos.includes(filtro.tipo))
@@ -827,7 +828,7 @@ function pintarGrid() {
         ${enDesc ? `<div class="ahorras">Ahorras: S/ ${soles(ahorro)}</div>` : ""}
       </div>
     </article>`;
-  }).join("") || `<p>Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
+  }).join("") || `<p>${q ? `No encontramos productos que contengan “${esc(q)}”` : `Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}`}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
 }
 let toastTimer;
 function toast(msg) {
@@ -878,6 +879,10 @@ function pintarCarrito() {
   $("carrito").innerHTML = filas.join("") || '<tr><td colspan="3">Tu pedido está vacío. Agrega productos del catálogo.</td></tr>';
   $("total").textContent = soles(total);
   if ($("cartN")) { $("cartN").textContent = [...carrito.values()].reduce((a, b) => a + b, 0); $("cartT").textContent = soles(total); }
+  // Mostrar "Tu pedido" y "Datos de entrega" solo cuando ya hay productos elegidos
+  const hayProductos = carrito.size > 0;
+  if ($("secPedido")) $("secPedido").classList.toggle("oculto", !hayProductos);
+  if ($("secEntrega")) $("secEntrega").classList.toggle("oculto", !hayProductos);
   pintarCartModal();
   if ($("multi") && $("multi").checked) pintarEntregasMulti();
 }
@@ -1385,7 +1390,22 @@ function renderSugerencias() {
     : `<div class="sug-item" style="cursor:default"><span class="sug-nom">Sin resultados para “${esc($("buscar").value.trim())}”</span></div>`;
   box.classList.add("ver");
 }
-$("buscar").addEventListener("input", () => { pintarGrid(); renderSugerencias(); });
+function buscarAhora() {
+  busqueda = $("buscar").value.trim().toLowerCase();
+  // La búsqueda mira TODO el catálogo (quita filtros de sección/tipo/ocasión)
+  if (busqueda) filtro = { sec: "", tipo: "", oc: "", group: "" };
+  pintarTabs(); pintarSelects(); pintarGrid();
+  $("sugerencias").classList.remove("ver");
+  const visible = el => el && el.offsetParent !== null;
+  const navD = document.querySelector(".nav-desktop"), navM = document.querySelector(".nav-mobile");
+  const destino = visible(navD) ? navD : (visible(navM) ? navM : $("grid"));
+  if (destino) destino.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+// Mientras se escribe solo se muestran sugerencias; la búsqueda se realiza al presionar Enter
+$("buscar").addEventListener("input", renderSugerencias);
+$("buscar").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); buscarAhora(); } });
+// Al limpiar el campo con la "X" se muestran de nuevo todos los productos
+$("buscar").addEventListener("search", () => { if (!$("buscar").value.trim()) { busqueda = ""; pintarGrid(); } });
 $("buscar").addEventListener("focus", renderSugerencias);
 document.addEventListener("click", e => { if (!e.target.closest(".topsearch")) $("sugerencias").classList.remove("ver"); });
 
