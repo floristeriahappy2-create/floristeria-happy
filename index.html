@@ -451,9 +451,12 @@
       <label class="ancho">Términos y condiciones<textarea id="pTerminos" rows="6"></textarea></label>
       <label class="ancho">Sobre nosotros<textarea id="pNosotros" rows="6"></textarea></label>
       <h2 style="margin-top:22px">Temporada / Campaña</h2>
-      <p class="ayuda">Muestra un botón resaltante y parpadeante con la temporada actual (Día de la Madre, Día del Padre, San Valentín, Navidad, etc.). Escribe hasta 8 temporadas y marca "Mostrar" en la(s) que quieras que aparezca(n) ahora.</p>
+      <p class="ayuda">Muestra un botón resaltante y parpadeante con la temporada actual (Día de la Madre, Día del Padre, San Valentín, Navidad, etc.). Escribe hasta 12 temporadas y marca "Mostrar" en la(s) que quieras que aparezca(n) ahora.</p>
       <label style="flex-direction:row;align-items:center;gap:8px;font-size:15px;font-weight:600"><input type="checkbox" id="tempOn"> Activar botón(es) de temporada</label>
       <div id="tempFilas" style="margin-top:10px"></div>
+      <h2 style="margin-top:22px">Estadísticas de visitas (Google Analytics)</h2>
+      <p class="ayuda">Pega aquí tu <b>ID de medición</b> de Google Analytics (tiene la forma <b>G-XXXXXXXXXX</b>) para saber cuántas personas visitan tu tienda, de dónde vienen y en tiempo real. Déjalo vacío si aún no lo tienes.</p>
+      <label class="ancho">ID de Google Analytics<input id="pGaId" type="text" placeholder="G-XXXXXXXXXX"></label>
       <button class="primario" id="pGuardar" type="button">Guardar portada</button>
       <div class="aviso" id="pAviso"></div>
     </div>
@@ -635,7 +638,7 @@ function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitul
   procesoCompra: "1. Elige tus productos y agrégalos al carrito.\n2. Toca “Finalizar compra” y completa los datos de entrega.\n3. Elige tu forma de pago y realiza el pago.\n4. Envía tu pedido por WhatsApp y adjunta tu comprobante.\n5. Preparamos y entregamos tu pedido en la fecha y hora elegida.",
   terminos: "• Los pedidos se confirman una vez recibido el pago y el comprobante.\n• Las entregas se realizan en la fecha y franja horaria seleccionadas, sujetas a disponibilidad.\n• Las imágenes son referenciales; las flores pueden variar según temporada, manteniendo el valor del arreglo.\n• Para cambios o cancelaciones, contáctanos por WhatsApp con anticipación.",
   nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto.",
-  tempOn: false, temporadas: [], deliveryCosto: 7 }; }
+  tempOn: false, temporadas: [], deliveryCosto: 7, gaId: "" }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
 const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
@@ -1434,17 +1437,29 @@ function pintarSeasonBar() {
 function pintarTempFilas() {
   if (!$("tempFilas")) return;
   const arr = Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : [];
-  const ej = ["🌸 Día de la Madre", "👔 Día del Padre", "❤️ San Valentín", "🎓 Graduaciones", "🎄 Navidad", "🌷 Primavera", "🎉 Fiestas Patrias", "💐 Temporada especial"];
+  const ej = ["🌸 Día de la Madre", "👔 Día del Padre", "❤️ San Valentín", "🎓 Graduaciones", "🎄 Navidad", "🌷 Primavera", "🎉 Fiestas Patrias", "💐 Temporada especial", "🎃 Halloween", "🕊️ Todos los Santos", "🐣 Pascua", "🎁 Fin de año"];
   let html = "";
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
     const t = arr[i] || { texto: "", activo: false };
     html += `<div class="temp-fila"><input type="text" id="temp${i}" placeholder="${esc(ej[i])}" value="${esc(t.texto || "")}"><label><input type="checkbox" id="tempAct${i}" ${t.activo ? "checked" : ""}> Mostrar</label></div>`;
   }
   $("tempFilas").innerHTML = html;
 }
+let gaCargado = "";
+function cargarAnalytics() {
+  const id = (PORTADA && PORTADA.gaId || "").trim();
+  if (!id || !/^G-[A-Za-z0-9]+$/.test(id) || gaCargado === id) return;
+  gaCargado = id;
+  const s = document.createElement("script"); s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id); document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { window.dataLayer.push(arguments); };
+  window.gtag("js", new Date());
+  window.gtag("config", id);
+}
 function aplicarPortada() {
   actualizarLimites();
   pintarSeasonBar();
+  cargarAnalytics();
   if (!$("heroTitulo")) return;
   $("heroTitulo").textContent = PORTADA.titulo || "";
   $("heroSub").textContent = PORTADA.subtitulo || "";
@@ -1481,6 +1496,7 @@ function abrirPortadaAdmin() {
   $("pTerminos").value = (PORTADA.terminos != null) ? PORTADA.terminos : def.terminos;
   $("pNosotros").value = (PORTADA.nosotros != null) ? PORTADA.nosotros : def.nosotros;
   $("tempOn").checked = !!PORTADA.tempOn;
+  if ($("pGaId")) $("pGaId").value = PORTADA.gaId || "";
   pintarTempFilas();
 }
 function pintarAcceso() {
@@ -1654,7 +1670,8 @@ $("pGuardar").addEventListener("click", () => {
     procesoCompra: $("pProceso").value, terminos: $("pTerminos").value, nosotros: $("pNosotros").value };
   obj.tempOn = $("tempOn").checked;
   obj.temporadas = [];
-  for (let i = 0; i < 8; i++) { obj.temporadas.push({ texto: ($("temp" + i) ? $("temp" + i).value.trim() : ""), activo: !!($("tempAct" + i) && $("tempAct" + i).checked) }); }
+  for (let i = 0; i < 12; i++) { obj.temporadas.push({ texto: ($("temp" + i) ? $("temp" + i).value.trim() : ""), activo: !!($("tempAct" + i) && $("tempAct" + i).checked) }); }
+  obj.gaId = ($("pGaId") ? $("pGaId").value.trim() : "");
   if (!nube) { alert("Necesitas la nube (Firebase) para guardar la portada."); return; }
   nube.db.collection("config").doc("portada").set(obj).then(() => { PORTADA = obj; aplicarPortada(); avisar("pAviso", "✅ Portada guardada. Ya se ve en tu tienda."); }).catch(e => avisar("pAviso", "⚠️ " + e.message));
 });
