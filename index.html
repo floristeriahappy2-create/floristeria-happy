@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>
-  :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#f7f4f4; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e3dada;
+  :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#fdf5f0; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e9ddd8;
     box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fondo:#1a1516; --card:#251e1f; --texto:#f1eaea; --suave:#b3a8a9; --borde:#3d3334; --rosado:#3a2124; } }
   :root[data-theme="dark"] { --fondo:#1a1516; --card:#251e1f; --texto:#f1eaea; --suave:#b3a8a9; --borde:#3d3334; --rosado:#3a2124; }
@@ -65,17 +65,29 @@
   .porta-thumbs img { width:110px; height:70px; object-fit:cover; border-radius:8px; }
   .porta-thumbs .pt button { position:absolute; top:-6px; right:-6px; background:var(--rojo); color:#fff; border:0; width:22px; height:22px; border-radius:50%; cursor:pointer; }
   .wa { display:inline-block; margin-top:8px; background:#fff; color:var(--rojo); padding:6px 12px; border-radius:20px; font-size:13px; font-weight:600; text-decoration:none; }
-  main { max-width:1100px; margin:0 auto; padding:16px; }
+  main { max-width:1100px; margin:0 auto; padding:16px; background:radial-gradient(120% 80% at 50% 0%, rgba(253,226,227,.55), rgba(253,226,227,0) 55%); }
+  .cat-intro { display:flex; align-items:center; justify-content:center; gap:14px; margin:6px 0 18px; }
+  .cat-intro .cat-line { height:1px; flex:1; max-width:150px; background:linear-gradient(90deg, transparent, var(--rojo)); opacity:.35; }
+  .cat-intro .cat-line:last-child { background:linear-gradient(90deg, var(--rojo), transparent); }
+  .cat-intro .cat-flor { color:var(--rojo); font-weight:700; font-size:17px; letter-spacing:.3px; white-space:nowrap; }
+  @media (max-width:560px){ .cat-intro .cat-flor { font-size:15px; } .cat-intro { gap:8px; } }
   .filtros { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   input, select, textarea { padding:10px 12px; border:1px solid var(--borde); border-radius:8px; font-size:15px; font-family:inherit; background:var(--card); color:var(--texto); max-width:100%; }
   .filtros input { flex:1; min-width:160px; }
   .nav-mobile { display:none; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .nav-mobile .sel { flex:1 1 100%; min-height:46px; font-size:15px; font-weight:500; }
-  @media (max-width:560px) { .nav-desktop { display:none; } .nav-mobile { display:flex; } }
+  @media (max-width:560px) {
+    .nav-mobile { display:none; }
+    .tabs { gap:6px; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
+    .tabs .tab { background:var(--rosado); color:var(--rojo); border-radius:22px; border-bottom:0; padding:10px 16px; font-weight:600; }
+    .tabs .tab[aria-selected="true"] { background:var(--rojo); color:#fff; border-bottom:0; }
+    .tabs .tab.tab-temp { color:#fff; }
+  }
   button { font-family:inherit; cursor:pointer; }
   :focus-visible { outline:3px solid #f28b91; outline-offset:2px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:14px; scroll-margin-top:16px; }
-  .card { background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.12); display:flex; flex-direction:column; }
+  .card { background:var(--card); border:1px solid #f0e4e0; border-radius:14px; overflow:hidden; box-shadow:0 3px 12px rgba(150,60,60,.10); display:flex; flex-direction:column; transition:transform .18s ease, box-shadow .18s ease; }
+  .card:hover { transform:translateY(-4px); box-shadow:0 10px 22px rgba(150,60,60,.18); }
   .foto { height:150px; display:flex; align-items:center; justify-content:center; font-size:56px; background:var(--rosado); }
   .foto img { width:100%; height:100%; object-fit:cover; }
   .body { padding:12px; flex:1; display:flex; flex-direction:column; gap:6px; }
@@ -468,6 +480,11 @@
   </section>
 
   <!-- ===== TIENDA ===== -->
+  <div class="cat-intro">
+    <span class="cat-line"></span>
+    <span class="cat-flor">🌷 Nuestra colección 🌷</span>
+    <span class="cat-line"></span>
+  </div>
   <div class="nav-desktop">
     <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
     <nav class="ocasiones" id="ocasiones" aria-label="Filtro"></nav>
