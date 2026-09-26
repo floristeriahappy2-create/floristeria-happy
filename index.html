@@ -402,6 +402,12 @@
       <button class="secundario" id="expXlsx" type="button">Descargar plantilla Excel</button>
       <button class="peligro" id="restaurar" type="button">Volver a los productos de ejemplo</button>
     </div>
+    <h2 style="margin-top:22px">Velocidad — Optimizar fotos 🗜️</h2>
+    <p class="ayuda">Las fotos son lo que más pesa. Este botón vuelve a comprimir TODAS las fotos de tus productos de una sola vez (sin perder calidad visible), para que tu tienda cargue más rápido. Úsalo cada cierto tiempo o después de subir muchas fotos.</p>
+    <p class="ayuda" id="pesoCatalogo" style="font-weight:600;color:var(--rojo)"></p>
+    <div class="acciones">
+      <button class="secundario" id="btnOptFotos" type="button">🗜️ Optimizar todas las fotos</button>
+    </div>
     <div class="aviso" id="avisoAdmin"></div>
 
     <h2 style="margin-top:22px">Productos (<span id="nProd">0</span>)</h2>
@@ -879,9 +885,10 @@ function pintarChecks(selT = [], selO = []) {
 /* ---------- Fotos: reducir a 700 px para que pesen poco ---------- */
 // Comprime una imagen: la achica a "maxLado" px y baja la calidad solo lo necesario
 // para quedar por debajo de "objetivoKB". Empieza en calidad alta (0.85) para que no se note.
-function comprimirImagen(file, maxLado, objetivoKB) {
+function comprimirImagen(fileOrUrl, maxLado, objetivoKB) {
   return new Promise((ok, mal) => {
-    const img = new Image(), url = URL.createObjectURL(file);
+    const esUrl = typeof fileOrUrl === "string";
+    const img = new Image(), url = esUrl ? fileOrUrl : URL.createObjectURL(fileOrUrl);
     img.onload = () => {
       const k = Math.min(1, maxLado / Math.max(img.width, img.height));
       const c = document.createElement("canvas");
@@ -890,17 +897,56 @@ function comprimirImagen(file, maxLado, objetivoKB) {
       const ctx = c.getContext("2d");
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
+      if (!esUrl) URL.revokeObjectURL(url);
       const pesoKB = d => Math.round(d.length * 0.75 / 1024);
       let q = 0.85, data = c.toDataURL("image/jpeg", q);
       while (pesoKB(data) > objetivoKB && q > 0.4) { q = Math.round((q - 0.08) * 100) / 100; data = c.toDataURL("image/jpeg", q); }
       ok(data);
     };
-    img.onerror = () => mal(new Error("No se pudo leer la imagen"));
+    img.onerror = () => { if (!esUrl) URL.revokeObjectURL(url); mal(new Error("No se pudo leer la imagen")); };
     img.src = url;
   });
 }
 function leerFoto(file) { return comprimirImagen(file, 760, 130); }
+function pesoDataURL(s) { return (typeof s === "string" && s.startsWith("data:")) ? s.length * 0.75 / 1024 : 0; }
+function fotosDe(p) { const a = Array.isArray(p.fotos) && p.fotos.length ? p.fotos.slice() : (p.foto ? [p.foto] : []); return a; }
+function pesoCatalogoKB() { let t = 0; for (const p of CATALOGO) for (const f of fotosDe(p)) t += pesoDataURL(f); return t; }
+function mostrarPesoCatalogo() {
+  const el = document.getElementById("pesoCatalogo"); if (!el) return;
+  const kb = pesoCatalogoKB(), mb = kb / 1024;
+  const n = CATALOGO.length;
+  let txt = `Peso actual de las fotos: ${mb >= 1 ? mb.toFixed(1) + " MB" : Math.round(kb) + " KB"} en ${n} producto(s).`;
+  if (mb >= 4) txt += " ⚠️ Es alto: conviene optimizar.";
+  else if (mb >= 1.5) txt += " Se puede optimizar un poco.";
+  else txt += " ✅ Está bien.";
+  el.textContent = txt;
+}
+async function optimizarFotos() {
+  if (!CATALOGO.length) { alert("No hay productos que optimizar."); return; }
+  const btn = document.getElementById("btnOptFotos");
+  if (btn) { btn.disabled = true; btn.textContent = "Optimizando... espera"; }
+  let antes = 0, despues = 0, cambiados = 0; const tocados = [];
+  for (const p of CATALOGO) {
+    let cambio = false;
+    let arr = Array.isArray(p.fotos) && p.fotos.length ? p.fotos : (p.foto ? [p.foto] : []);
+    for (let i = 0; i < arr.length; i++) {
+      const f = arr[i];
+      if (typeof f === "string" && f.startsWith("data:")) {
+        antes += pesoDataURL(f);
+        try { const nf = await comprimirImagen(f, 760, 130); if (nf.length < f.length * 0.93) { arr[i] = nf; cambio = true; } } catch {}
+        despues += pesoDataURL(arr[i]);
+      }
+    }
+    if (cambio) { p.fotos = arr; p.foto = arr[0] || p.foto; cambiados++; tocados.push(p); }
+  }
+  if (nube) { for (const p of tocados) { try { await col().doc(String(p.id)).set(p); } catch {} } }
+  else { try { localStorage.setItem(KEY, JSON.stringify(CATALOGO)); } catch {} }
+  try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch {}
+  refrescar(); mostrarPesoCatalogo();
+  if (btn) { btn.disabled = false; btn.textContent = "🗜️ Optimizar todas las fotos"; }
+  const ahorro = Math.max(0, antes - despues);
+  alert(cambiados ? `¡Listo! Optimicé ${cambiados} producto(s).\nAhorro: ${Math.round(ahorro)} KB (${(ahorro/1024).toFixed(1)} MB menos).\nTu tienda cargará más rápido.` : "Tus fotos ya estaban optimizadas. 👍");
+}
 
 /* ---------- Tienda ---------- */
 function pintarSecciones() {
@@ -1154,6 +1200,7 @@ function descargar(nombre, blob) {
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 $("expJson").onclick = () => descargar("catalogo.json", new Blob([JSON.stringify(CATALOGO, null, 1)], { type:"application/json" }));
+$("btnOptFotos").onclick = optimizarFotos;
 $("expXlsx").onclick = async () => {
   try { await cargarXLSX(); } catch { alert("No se pudo cargar el lector de Excel. Revisa tu conexión."); return; }
   const filas = CATALOGO.map(p => ({ nombre:p.nombre, descripcion:p.desc, seccion:nombreSeccion(p.categoria), precio:p.precio, precio_antes:p.precioAntes || "", costo:p.costo || "", stock:p.stock, tipos:p.tipos.map(nombreTipo).join(", "), ocasiones:p.ocasiones.map(nombreOcasion).join(", "), foto:p.foto.startsWith("data:") ? "" : p.foto }));
@@ -1227,7 +1274,7 @@ $("btnAdmin").onclick = () => {
   if (abierto) { $("admin").style.display = "none"; $("btnAdmin").textContent = "Administrar"; return; }
   if (!nube && prompt("Clave de administrador:") !== CLAVE_ADMIN) { alert("Clave incorrecta."); return; }
   $("admin").style.display = "block"; $("btnAdmin").textContent = "Cerrar administración";
-  pintarAcceso(); $("admin").scrollIntoView({ behavior:"smooth" });
+  pintarAcceso(); mostrarPesoCatalogo(); $("admin").scrollIntoView({ behavior:"smooth" });
 };
 // Acceso al administrador OCULTO para el público:
 function mostrarBtnAdmin() { const b = $("btnAdmin"); if (b && b.classList.contains("oculto")) { b.classList.remove("oculto"); b.scrollIntoView({ behavior: "smooth", block: "center" }); } }
