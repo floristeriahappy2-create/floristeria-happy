@@ -19,7 +19,10 @@
 <meta name="twitter:description" content="Flores frescas y arreglos únicos. Haz tu pedido y te lo llevamos.">
 <meta name="twitter:image" content="https://floristeriahappy2-create.github.io/floristeria-happy/og-portada.jpeg">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Dancing+Script:wght@600&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>
   :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#f7f4f4; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e3dada;
     box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
@@ -677,6 +680,12 @@ const nuevoId = () => (CATALOGO.reduce((m,p) => Math.max(m, p.id), 0) + 1);
 function cargarScript(src) {
   return new Promise((ok, mal) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = () => mal(new Error("No cargó " + src)); document.head.appendChild(t); });
 }
+let xlsxPromesa = null;
+function cargarXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  if (!xlsxPromesa) xlsxPromesa = cargarScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+  return xlsxPromesa;
+}
 async function iniciarNube() {
   if (!FIREBASE_CONFIG) return false;
   try {
@@ -702,6 +711,7 @@ async function iniciarNube() {
     await new Promise(listo => {
       nube.db.collection("productos").onSnapshot(snap => {
         CATALOGO = normalizar(snap.docs.map(d => d.data()));
+        try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch {}
         if (primera) { primera = false; listo(); } else refrescar();
       }, err => { console.error(err); if (primera) { primera = false; listo(); } });
     });
@@ -845,20 +855,30 @@ function pintarChecks(selT = [], selO = []) {
 }
 
 /* ---------- Fotos: reducir a 700 px para que pesen poco ---------- */
-function leerFoto(file) {
+// Comprime una imagen: la achica a "maxLado" px y baja la calidad solo lo necesario
+// para quedar por debajo de "objetivoKB". Empieza en calidad alta (0.85) para que no se note.
+function comprimirImagen(file, maxLado, objetivoKB) {
   return new Promise((ok, mal) => {
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
-      const max = 700, k = Math.min(1, max / Math.max(img.width, img.height));
+      const k = Math.min(1, maxLado / Math.max(img.width, img.height));
       const c = document.createElement("canvas");
-      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.78));
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
+      const ctx = c.getContext("2d");
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const pesoKB = d => Math.round(d.length * 0.75 / 1024);
+      let q = 0.85, data = c.toDataURL("image/jpeg", q);
+      while (pesoKB(data) > objetivoKB && q > 0.4) { q = Math.round((q - 0.08) * 100) / 100; data = c.toDataURL("image/jpeg", q); }
+      ok(data);
     };
     img.onerror = () => mal(new Error("No se pudo leer la imagen"));
     img.src = url;
   });
 }
+function leerFoto(file) { return comprimirImagen(file, 760, 130); }
 
 /* ---------- Tienda ---------- */
 function pintarSecciones() {
@@ -1082,7 +1102,7 @@ $("archivo").addEventListener("change", async e => {
     let lista;
     if (file.name.toLowerCase().endsWith(".json")) lista = JSON.parse(await file.text());
     else {
-      if (typeof XLSX === "undefined") throw new Error("No cargó el lector de Excel. Revisa tu conexión a internet.");
+      try { await cargarXLSX(); } catch { throw new Error("No se pudo cargar el lector de Excel. Revisa tu conexión a internet."); }
       const wb = XLSX.read(await file.arrayBuffer());
       lista = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:"" });
     }
@@ -1112,8 +1132,8 @@ function descargar(nombre, blob) {
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 $("expJson").onclick = () => descargar("catalogo.json", new Blob([JSON.stringify(CATALOGO, null, 1)], { type:"application/json" }));
-$("expXlsx").onclick = () => {
-  if (typeof XLSX === "undefined") { alert("No cargó el lector de Excel."); return; }
+$("expXlsx").onclick = async () => {
+  try { await cargarXLSX(); } catch { alert("No se pudo cargar el lector de Excel. Revisa tu conexión."); return; }
   const filas = CATALOGO.map(p => ({ nombre:p.nombre, descripcion:p.desc, seccion:nombreSeccion(p.categoria), precio:p.precio, precio_antes:p.precioAntes || "", costo:p.costo || "", stock:p.stock, tipos:p.tipos.map(nombreTipo).join(", "), ocasiones:p.ocasiones.map(nombreOcasion).join(", "), foto:p.foto.startsWith("data:") ? "" : p.foto }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.length ? filas : [{nombre:"",descripcion:"",seccion:"",precio:"",stock:"",tipos:"",ocasiones:"",foto:""}]), "Catalogo");
   XLSX.writeFile(wb, "catalogo_happy.xlsx");
@@ -1385,13 +1405,7 @@ function pintarDashboard() {
   const ent = Object.entries(g), max = Math.max(1, ...ent.map(e => e[1]));
   $("graficoVentas").innerHTML = ent.length ? `<div class="barras">${ent.map(([k, v]) => `<div class="barra-col"><div class="barra" style="height:${Math.round(v / max * 100)}%" title="S/ ${soles(v)}"></div><span>${esc(k)}</span></div>`).join("")}</div>` : "<p>Sin datos en el periodo.</p>";
 }
-function leerFotoHero(file) {
-  return new Promise((ok, mal) => {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => { const max = 1280, k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.72)); };
-    img.onerror = () => mal(new Error("No se pudo leer la imagen")); img.src = url;
-  });
-}
+function leerFotoHero(file) { return comprimirImagen(file, 1280, 260); }
 function limiteMsg() { return (PORTADA && PORTADA.maxMsg) || 250; }
 function actualizarContadores() {
   const max = limiteMsg();
@@ -1648,7 +1662,10 @@ $("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pinta
 $("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarTabs(); pintarGrid(); });
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
 document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
-pintarSecciones(); pintarChecks(); cargar().then(() => { refrescar(); aplicarPortada(); });
+pintarSecciones(); pintarChecks();
+// Mostrar al instante lo último que se vio (copia local), mientras se conecta a la nube
+try { const c = localStorage.getItem("cat_cache"); if (c) { CATALOGO = normalizar(JSON.parse(c)); refrescar(); } } catch {}
+cargar().then(() => { refrescar(); aplicarPortada(); });
 </script>
 </body>
 </html>
