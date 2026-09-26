@@ -305,6 +305,8 @@
   .envio-fill { height:100%; width:0%; background:var(--rojo); border-radius:6px; transition:width .35s ease; }
   .cart-btn2 { display:block; width:100%; background:var(--rojo); color:#fff; border:0; padding:15px; border-radius:30px; font-size:17px; font-weight:700; cursor:pointer; margin-top:10px; box-shadow:0 3px 10px rgba(0,0,0,.12); }
   .cart-btn2:hover { background:var(--rojo2); }
+  .cart-btn2.secundario2 { background:#fff; color:var(--rojo); border:2px solid var(--rojo); box-shadow:none; }
+  .cart-btn2.secundario2:hover { background:var(--rosado); }
   .cart-foot .primario { width:100%; padding:14px; font-size:16px; }
   @media (max-width:500px){ .cart-panel { width:100%; max-width:100%; } }
 
@@ -542,7 +544,7 @@
       <div class="cart-sub"><span>SUBTOTAL:</span><b id="cartSubtotal">S/ 0.00</b></div>
       <div class="envio-msg" id="envioMsg"></div>
       <div class="envio-bar" id="envioBar"><div class="envio-fill" id="envioFill"></div></div>
-      <button class="cart-btn2" id="verCarrito" type="button">Ver carrito</button>
+      <button class="cart-btn2 secundario2" id="verCarrito" type="button">Seguir comprando</button>
       <button class="cart-btn2" id="finalizarCompra" type="button">Finalizar compra</button>
     </div>
   </div>
@@ -571,7 +573,7 @@
     <button class="foot-link" data-info="nosotros" type="button">🌸 Sobre nosotros</button>
   </div>
   <div class="foot-copy">Floristería Happy · Entregamos sentimientos</div>
-  <button id="btnAdmin" type="button" class="foot-admin">Administrar</button>
+  <button id="btnAdmin" type="button" class="foot-admin oculto">Administrar</button>
 </footer>
 
 <!-- Botón flotante para llamar directo -->
@@ -1210,6 +1212,16 @@ $("btnAdmin").onclick = () => {
   $("admin").style.display = "block"; $("btnAdmin").textContent = "Cerrar administración";
   pintarAcceso(); $("admin").scrollIntoView({ behavior:"smooth" });
 };
+// Acceso al administrador OCULTO para el público:
+function mostrarBtnAdmin() { const b = $("btnAdmin"); if (b && b.classList.contains("oculto")) { b.classList.remove("oculto"); b.scrollIntoView({ behavior: "smooth", block: "center" }); } }
+// 1) Por enlace secreto: terminar la URL en #admin (o ?admin)
+if (/admin/i.test(location.hash) || /[?&]admin/i.test(location.search)) mostrarBtnAdmin();
+// 2) Por gesto secreto: tocar 5 veces seguidas el texto del pie de página
+(function () {
+  const fc = document.querySelector(".foot-copy"); if (!fc) return;
+  let n = 0, t = 0;
+  fc.addEventListener("click", () => { const ahora = Date.now(); if (ahora - t > 1500) n = 0; t = ahora; if (++n >= 5) { n = 0; mostrarBtnAdmin(); } });
+})();
 let audioCtx = null, idsVistos = new Set(), monitorAbierto = false;
 function beep() {
   try {
@@ -1637,7 +1649,7 @@ $("dPeriodo").addEventListener("change", pintarDashboard);
 $("verPedido").addEventListener("click", () => { pintarCartModal(); $("cartModal").classList.add("abierto"); });
 $("cartClose").addEventListener("click", () => $("cartModal").classList.remove("abierto"));
 $("cartModal").addEventListener("click", e => { if (e.target.id === "cartModal") $("cartModal").classList.remove("abierto"); });
-$("verCarrito").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); mostrarPedidoYEntrega(); });
+$("verCarrito").addEventListener("click", () => { $("cartModal").classList.remove("abierto"); const visible = el => el && el.offsetParent !== null; const navD = document.querySelector(".nav-desktop"), navM = document.querySelector(".nav-mobile"); const dest = visible(navD) ? navD : (visible(navM) ? navM : $("grid")); if (dest) dest.scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("finalizarCompra").addEventListener("click", () => { if (!carrito.size) { alert("Tu carrito está vacío. Agrega productos primero."); return; } $("cartModal").classList.remove("abierto"); mostrarPedidoYEntrega(); });
 // Ventana de información del pie (Proceso de compra / Términos / Sobre nosotros)
 const INFO_TIT = { proceso: "🛒 Proceso de compra", terminos: "📄 Términos y condiciones", nosotros: "🌸 Sobre nosotros" };
