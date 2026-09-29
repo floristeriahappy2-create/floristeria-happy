@@ -551,8 +551,8 @@
   <section class="panel oculto" id="secEntrega">
     <h2>Datos de entrega</h2>
     <form id="form" class="grid2">
-      <label>Quien compra<input name="cliente" required></label>
-      <label>Teléfono / WhatsApp<input name="telefono" type="tel" required></label>
+      <label>Quien compra<input name="cliente"></label>
+      <label>Teléfono / WhatsApp<input name="telefono" type="tel"></label>
       <label>DNI de quien paga (para el comprobante)<input name="dni" inputmode="numeric" autocomplete="off"></label>
 
       <label class="ancho multi-toggle"><input type="checkbox" id="multi"> Enviar a varias direcciones / distintos destinatarios</label>
@@ -1636,12 +1636,45 @@ $("form").addEventListener("change", e => {
   const m = n.match(/^(fecha|franja)_(\d+)$/);
   if (m) { const i = m[2]; revisarCupo(els["fecha_" + i] && els["fecha_" + i].value, els["franja_" + i] && els["franja_" + i].value, document.getElementById("avisoCupo_" + i)); }
 });
+function validarCampos(lista) {
+  for (const [el, nombre] of lista) {
+    const val = el ? String(el.value == null ? "" : el.value).trim() : "";
+    if (!val) {
+      alert("⚠️ Te falta llenar este campo:\n\n👉 " + nombre);
+      if (el && el.focus) { try { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus({ preventScroll: true }); } catch (e) {} }
+      return false;
+    }
+  }
+  return true;
+}
 $("form").addEventListener("submit", e => {
   e.preventDefault();
-  if (!carrito.size) { alert("Agrega al menos un producto"); return; }
-  const f = e.target, el = f.elements, cliente = el.cliente.value.trim(), telefono = el.telefono.value.trim(), dni = el.dni.value.trim(), pago = el.pago.value;
-  if (!cliente || !telefono) { alert("Completa tu nombre y teléfono."); return; }
-  if (!pago) { alert("Elige la forma de pago."); return; }
+  if (!carrito.size) { alert("Agrega al menos un producto a tu pedido."); return; }
+  const f = e.target, el = f.elements;
+  // Datos de quien compra
+  if (!validarCampos([[el.cliente, "Quien compra (tu nombre)"], [el.telefono, "Teléfono / WhatsApp"]])) return;
+  // Datos de entrega
+  if ($("multi").checked) {
+    const u = unidadesCarrito();
+    for (let i = 0; i < u.length; i++) {
+      if (!validarCampos([
+        [el["dest_" + i], "Quien recibe — Entrega " + (i + 1)],
+        [el["dir_" + i], "Dirección — Entrega " + (i + 1)],
+        [el["dist_" + i], "Distrito — Entrega " + (i + 1)],
+        [el["fecha_" + i], "Fecha de entrega — Entrega " + (i + 1)]
+      ])) return;
+    }
+  } else {
+    if (!validarCampos([
+      [el.destinatario, "Quien recibe"],
+      [el.direccion, "Dirección de entrega"],
+      [el.distrito, "Distrito"],
+      [el.fecha, "Fecha de entrega"]
+    ])) return;
+  }
+  // Forma de pago
+  if (!validarCampos([[el.pago, "Método de pago"]])) return;
+  const cliente = el.cliente.value.trim(), telefono = el.telefono.value.trim(), dni = el.dni.value.trim(), pago = el.pago.value;
   const lineas = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return `• ${c} x ${p.nombre} = S/ ${soles(p.precio * c)}`; });
   const total = $("total").textContent;
   const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7), fechaISO = new Date().toISOString();
@@ -1712,13 +1745,13 @@ function pintarEntregasMulti() {
     <div class="entrega-bloque">
       <h4>Entrega ${i + 1} — ${esc(p.nombre)}</h4>
       <div class="grid2">
-        <label>Quien recibe<input name="dest_${i}" required></label>
+        <label>Quien recibe<input name="dest_${i}"></label>
         <label>Teléfono de quien recibe<input name="tel_${i}" type="tel"></label>
-        <label style="grid-column:1/-1">Dirección<input name="dir_${i}" required></label>
+        <label style="grid-column:1/-1">Dirección<input name="dir_${i}"></label>
         <label style="grid-column:1/-1">Referencia<input name="ref_${i}"></label>
         <label style="grid-column:1/-1">Observaciones<textarea name="obs_${i}" rows="2"></textarea></label>
-        <label>Distrito<input name="dist_${i}" required></label>
-        <label>Fecha<input name="fecha_${i}" type="date" required></label>
+        <label>Distrito<input name="dist_${i}"></label>
+        <label>Fecha<input name="fecha_${i}" type="date"></label>
         <label>Franja horaria<select name="franja_${i}"><option>09:00 - 13:00</option><option>13:00 - 17:00</option><option>17:00 - 21:00</option></select></label>
         <div style="grid-column:1/-1" class="aviso-cupo" id="avisoCupo_${i}"></div>
         <label style="grid-column:1/-1">Mensaje para la tarjeta<textarea name="tarjeta_${i}" rows="2"></textarea><small class="cont-msg"></small></label>
