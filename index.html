@@ -1653,9 +1653,9 @@ $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenE
 /* Pedido por WhatsApp */
 function enviarHoja(fila) {
   if (!PEDIDOS_URL) return;
-  const body = JSON.stringify(fila);
-  try { if (navigator.sendBeacon) { navigator.sendBeacon(PEDIDOS_URL, body); return; } } catch (e) {}
-  fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
+  try {
+    fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
+  } catch (e) {}
 }
 $("form").addEventListener("change", e => {
   const n = e.target.name || "", els = e.target.form.elements;
