@@ -161,8 +161,8 @@
   .fab-llamar { position:fixed; right:16px; bottom:16px; z-index:80; display:inline-flex; align-items:center; gap:8px; background:#25a244; color:#fff; padding:14px 20px; border-radius:30px; font-weight:700; font-size:16px; text-decoration:none; box-shadow:0 5px 16px rgba(0,0,0,.28); }
   .fab-llamar:hover { background:#1e8a3a; }
   .fab-ico { font-size:20px; line-height:1; }
-  .info-panel { max-width:560px; }
-  .info-body { padding:22px; white-space:pre-wrap; line-height:1.6; color:var(--texto); font-size:15px; max-height:70vh; overflow-y:auto; }
+  .cart-panel.info-panel { position:relative; top:auto; right:auto; margin:8vh auto; height:auto; max-height:84vh; width:480px; max-width:92%; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+  .info-body { padding:22px; white-space:pre-wrap; line-height:1.6; color:var(--texto); font-size:15px; overflow-y:auto; flex:1; min-height:0; }
   @media (max-width:560px){ .fab-llamar { padding:15px; border-radius:50%; } .fab-llamar .fab-txt{ display:none; } .fab-ico{ font-size:22px; } }
   #admin { display:none; border:2px solid var(--rojo); }
   .acciones { display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 4px; }
@@ -534,7 +534,6 @@
       <option value="pred">Ordenar: predeterminado</option>
       <option value="precio-asc">Precio: bajo a alto</option>
       <option value="precio-desc">Precio: alto a bajo</option>
-      <option value="nombre">Nombre: A a Z</option>
     </select>
   </div>
   <div class="grid" id="grid"></div>
