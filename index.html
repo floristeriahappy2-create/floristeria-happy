@@ -1653,7 +1653,9 @@ $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenE
 /* Pedido por WhatsApp */
 function enviarHoja(fila) {
   if (!PEDIDOS_URL) return;
-  fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
+  const body = JSON.stringify(fila);
+  try { if (navigator.sendBeacon) { navigator.sendBeacon(PEDIDOS_URL, body); return; } } catch (e) {}
+  fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
 }
 $("form").addEventListener("change", e => {
   const n = e.target.name || "", els = e.target.form.elements;
@@ -1672,7 +1674,7 @@ function validarCampos(lista) {
   }
   return true;
 }
-$("form").addEventListener("submit", e => {
+$("form").addEventListener("submit", async e => {
   e.preventDefault();
   if (!carrito.size) { alert("Agrega al menos un producto a tu pedido."); return; }
   const f = e.target, el = f.elements;
@@ -1737,15 +1739,21 @@ $("form").addEventListener("submit", e => {
     entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
   }
 
-  if (nube) {
-    nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas }).catch(() => {});
-  }
+  // 1) Verificar cupo ANTES de guardar
   for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= CUPO_MAX) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + CUPO_MAX + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
-  window.open(`https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg), "_blank");
-  if (nube) { for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {}); }
-  if (nube) { for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(1), fecha: en.fecha, franja: en.franja }, { merge: true }).catch(() => {}); cuposCache[cid] = (cuposCache[cid] || 0) + 1; } }
+  // 2) Guardar el pedido en la nube y ESPERAR a que termine (para que sí aparezca en el panel)
+  if (nube) {
+    try {
+      await nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas });
+    } catch (err) { alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
+    for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
+    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(1), fecha: en.fecha, franja: en.franja }, { merge: true }).catch(() => {}); cuposCache[cid] = (cuposCache[cid] || 0) + 1; }
+  }
+  // 3) Limpiar y avisar
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
   carrito.clear(); pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
+  // 4) Abrir WhatsApp (ya con el pedido guardado)
+  location.href = `https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg);
 });
 
 $("orden").addEventListener("input", pintarGrid);
