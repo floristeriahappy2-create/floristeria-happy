@@ -1652,10 +1652,10 @@ $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenE
 
 /* Pedido por WhatsApp */
 function enviarHoja(fila) {
-  if (!PEDIDOS_URL) return;
+  if (!PEDIDOS_URL) return Promise.resolve();
   try {
-    fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
-  } catch (e) {}
+    return fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(fila) }).catch(() => {});
+  } catch (e) { return Promise.resolve(); }
 }
 $("form").addEventListener("change", e => {
   const n = e.target.name || "", els = e.target.form.elements;
@@ -1710,7 +1710,7 @@ $("form").addEventListener("submit", async e => {
   const entregas = [];
   const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, `Total: S/ ${total}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
 
-  let msg;
+  let msg, hojaPromesas = [];
   if ($("multi").checked) {
     // Una entrega por cada unidad del carrito
     const u = unidadesCarrito();
@@ -1727,15 +1727,15 @@ $("form").addEventListener("submit", async e => {
       entregas.push({ producto: p.nombre, destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
     }
     msg = [...cab, ``, `ENTREGAS (${u.length}):`, ...bloques].join("\n");
-    filas.forEach(enviarHoja);
+    hojaPromesas = filas.map(enviarHoja);
   } else {
     const dest = el.destinatario.value.trim(), dir = el.direccion.value.trim(), dist = el.distrito.value.trim(), fecha = el.fecha.value;
     if (!dest || !dir || !dist || !fecha) { alert("Completa los datos de entrega (quien recibe, dirección, distrito y fecha)."); return; }
     const telD = el.tel_destinatario.value.trim(), franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
     const referencia = (el.referencia ? el.referencia.value.trim() : ""), observaciones = (el.observaciones ? el.observaciones.value.trim() : "");
     msg = [...cab, ``, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, referencia ? `Referencia: ${referencia}` : "", `Entrega: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
-    enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
-                 destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
+    hojaPromesas = [enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
+                 destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones })];
     entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
   }
 
@@ -1749,10 +1749,12 @@ $("form").addEventListener("submit", async e => {
     for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
     for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(1), fecha: en.fecha, franja: en.franja }, { merge: true }).catch(() => {}); cuposCache[cid] = (cuposCache[cid] || 0) + 1; }
   }
-  // 3) Limpiar y avisar
+  // 3) Esperar a que el Excel reciba el pedido (máx 3 s) antes de salir a WhatsApp
+  try { await Promise.race([Promise.allSettled(hojaPromesas), new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
+  // 4) Limpiar y avisar
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
   carrito.clear(); pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
-  // 4) Abrir WhatsApp (ya con el pedido guardado)
+  // 5) Abrir WhatsApp (ya con el pedido guardado en la nube y en el Excel)
   location.href = `https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg);
 });
 
