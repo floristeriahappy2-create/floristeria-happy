@@ -161,7 +161,8 @@
   .fab-llamar { position:fixed; right:16px; bottom:16px; z-index:80; display:inline-flex; align-items:center; gap:8px; background:#25a244; color:#fff; padding:14px 20px; border-radius:30px; font-weight:700; font-size:16px; text-decoration:none; box-shadow:0 5px 16px rgba(0,0,0,.28); }
   .fab-llamar:hover { background:#1e8a3a; }
   .fab-ico { font-size:20px; line-height:1; }
-  .cart-panel.info-panel { position:relative; top:auto; right:auto; margin:8vh auto; height:auto; max-height:84vh; width:480px; max-width:92%; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+  .cart-panel.info-panel { position:relative; top:auto; right:auto; margin:8vh auto; height:auto; max-height:84vh; width:480px; max-width:92%; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.3); background:var(--fondo); }
+  .info-panel .cart-head { background:var(--rosado); }
   .info-body { padding:22px; white-space:pre-wrap; line-height:1.6; color:var(--texto); font-size:15px; overflow-y:auto; flex:1; min-height:0; }
   @media (max-width:560px){ .fab-llamar { padding:15px; border-radius:50%; } .fab-llamar .fab-txt{ display:none; } .fab-ico{ font-size:22px; } }
   #admin { display:none; border:2px solid var(--rojo); }
@@ -1394,6 +1395,31 @@ function imprimirDatos(id) {
     </div>`).join("");
   window.print();
 }
+// Corrección ortográfica automática para el mensaje de la tarjeta (tildes y ñ más comunes)
+const CORRECCIONES_ORTO = {
+  cumpleanos:"cumpleaños", cumpleano:"cumpleaño", anos:"años", ano:"año", feliz:"feliz",
+  corazon:"corazón", mama:"mamá", mami:"mamita", papa:"papá", dia:"día", dias:"días",
+  exito:"éxito", exitos:"éxitos", bendicion:"bendición", carino:"cariño", carinos:"cariños",
+  manana:"mañana", sueno:"sueño", suenos:"sueños", pequeno:"pequeño", pequena:"pequeña",
+  pequenos:"pequeños", pequenas:"pequeñas", adios:"adiós", graduacion:"graduación",
+  ademas:"además", tambien:"también", aqui:"aquí", alli:"allí", asi:"así", mas:"más",
+  angel:"ángel", angeles:"ángeles", unico:"único", unica:"única", proteccion:"protección",
+  ilusion:"ilusión", emocion:"emoción", admiracion:"admiración", felicitacion:"felicitación",
+  compania:"compañía", nino:"niño", nina:"niña", ninos:"niños", ninas:"niñas",
+  quiza:"quizá", corazoncito:"corazoncito", jovenes:"jóvenes", joven:"joven", ti:"ti",
+  facil:"fácil", dificil:"difícil", ultimo:"último", proximo:"próximo", ademas_:"además"
+};
+function corregirOrtografia(txt) {
+  if (!txt) return txt;
+  const caps = (orig, corr) => orig === orig.toUpperCase() ? corr.toUpperCase()
+    : (orig.charAt(0) === orig.charAt(0).toUpperCase() ? corr.charAt(0).toUpperCase() + corr.slice(1) : corr);
+  let s = String(txt).replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").trim();
+  s = s.replace(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/g, w => {
+    const key = w.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return CORRECCIONES_ORTO[key] ? caps(w, CORRECCIONES_ORTO[key]) : w;
+  });
+  return s.replace(/^([a-záéíóúñ])/, (m, c) => c.toUpperCase());
+}
 function formatoMensaje(txt) {
   // Limpieza: espacios y signos repetidos, espacio después de puntuación
   let t = String(txt || "").replace(/\s+/g, " ").replace(/([,.!?;:])\1+/g, "$1")
@@ -1432,7 +1458,7 @@ function imprimirMensaje(id) {
     .msg-box .m { font-family:${font}; line-height:1.35; color:#000; word-break:break-word; text-wrap:balance; text-wrap:pretty; }
   </style>`;
   $("printArea").innerHTML = estilo + ents.map(e => {
-    const html = formatoMensaje(e.tarjeta);
+    const html = formatoMensaje(corregirOrtografia(e.tarjeta));
     const fs = ajustarLetra(html, wPx, hPx, font);
     return `<div class="msg-page"><div class="msg-box"><div class="m" style="font-size:${fs}px">${html}</div></div></div>`;
   }).join("");
