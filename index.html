@@ -452,7 +452,7 @@
     <div id="tabPedidos" class="oculto">
       <h2>Pedidos</h2>
       <div class="filtros-ped">
-        <select id="fEstado"><option value="">Todos los estados</option><option value="Pendiente">Nuevo pedido</option><option>Pagado</option><option>Entregado</option><option>Anulado</option></select>
+        <select id="fEstado"><option value="">Todos los estados</option><option value="Pendiente">Nuevo pedido</option><option>Pagado</option><option>Entregado</option><option value="Anulado">Para despacho</option></select>
         <select id="fPeriodo"><option value="semana">Esta semana</option><option value="mes" selected>Este mes</option><option value="ano">Este año</option><option value="todo">Todo</option></select>
       </div>
       <div id="listaPedidos"></div>
@@ -729,7 +729,7 @@ let CATALOGO = [];
 const carrito = new Map();
 const $ = id => document.getElementById(id);
 const soles = n => Number(n).toFixed(2);
-const estLabel = e => e === "Pendiente" ? "Nuevo pedido" : e;
+const estLabel = e => e === "Pendiente" ? "Nuevo pedido" : e === "Anulado" ? "Para despacho" : e;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const nuevoId = () => (CATALOGO.reduce((m,p) => Math.max(m, p.id), 0) + 1);
 
@@ -1035,7 +1035,7 @@ function cerrarDetalle() { $("modal").classList.remove("abierto"); }
 let busqueda = "";
 function pintarGrid() {
   const q = busqueda;
-  const lista = CATALOGO.filter(p => p.nombre.toLowerCase().includes(q)
+  const lista = CATALOGO.filter(p => p.stock > 0 && p.nombre.toLowerCase().includes(q)
     && (filtro.sec ? p.categoria === filtro.sec : p.categoria !== "complementos")
     && (!filtro.tipo || p.tipos.includes(filtro.tipo))
     && (!filtro.oc || p.ocasiones.includes(filtro.oc)));
@@ -1500,7 +1500,7 @@ function pintarPedidos() {
   if (!$("listaPedidos")) return;
   const est = $("fEstado").value, per = $("fPeriodo").value;
   const lista = pedidosPeriodo(per).filter(p => !est || (p.estado || "Pendiente") === est).sort((a, b) => new Date(b.fechaISO) - new Date(a.fechaISO));
-  const col = { Pendiente: "#d39e00", Pagado: "#2e7d32", Entregado: "#1565c0", Anulado: "#b71c1c" };
+  const col = { Pendiente: "#d39e00", Pagado: "#2e7d32", Entregado: "#1565c0", Anulado: "#e67e22" };
   $("listaPedidos").innerHTML = lista.length ? lista.map(p => {
     const e = p.estado || "Pendiente";
     const its = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
@@ -1522,7 +1522,7 @@ function pintarPedidos() {
 function pintarDashboard() {
   if (!$("kpis")) return;
   const per = $("dPeriodo").value;
-  const lista = pedidosPeriodo(per).filter(p => (p.estado || "Pendiente") !== "Anulado");
+  const lista = pedidosPeriodo(per);
   const ventas = lista.reduce((s, p) => s + (p.total || 0), 0), nped = lista.length, ticket = nped ? ventas / nped : 0;
   let utilidad = 0, hayCosto = false; const acum = {};
   for (const p of lista) for (const i of (p.items || [])) {
