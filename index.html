@@ -137,6 +137,9 @@
   .total-box .tb-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; color:var(--texto); }
   .total-box .tb-row.total { display:block; text-align:right; font-size:19px; font-weight:800; color:var(--rojo); border-top:1px dashed var(--borde); margin-top:6px; padding-top:8px; }
   .cart-total-fin { color:var(--rojo); font-weight:800; margin-top:4px; }
+  .entrega-modo { display:flex; gap:8px; margin-bottom:12px; }
+  .em-opt { flex:1; padding:11px 8px; border:2px solid var(--borde); background:var(--card); border-radius:12px; font-weight:600; color:var(--texto); cursor:pointer; font-size:13.5px; line-height:1.2; }
+  .em-opt.activo { border-color:var(--rojo); background:var(--rosado); color:var(--rojo); }
   form.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   form label { display:flex; flex-direction:column; font-size:13px; gap:4px; }
   .ancho { grid-column:1 / -1; }
@@ -601,6 +604,10 @@
     <div class="cart-head"><h3>🛒 Carrito de compra</h3><button id="cartClose" aria-label="Cerrar">✕</button></div>
     <div class="cart-items" id="cartItems"></div>
     <div class="cart-foot">
+      <div class="entrega-modo">
+        <button type="button" class="em-opt activo" data-modo="delivery">🛵 Delivery a domicilio</button>
+        <button type="button" class="em-opt" data-modo="tienda">🏪 Recojo en tienda</button>
+      </div>
       <div class="cart-sub"><span>SUBTOTAL:</span><b id="cartSubtotal">S/ 0.00</b></div>
       <div class="envio-msg" id="envioMsg"></div>
       <div class="envio-bar" id="envioBar"><div class="envio-fill" id="envioFill"></div></div>
@@ -736,6 +743,7 @@ let filtro = { sec:"", tipo:"", oc:"", group:"" };
 const EJEMPLO = [];
 let CATALOGO = [];
 const carrito = new Map();
+let entregaModo = "delivery"; // "delivery" o "tienda"
 const $ = id => document.getElementById(id);
 const soles = n => Number(n).toFixed(2);
 const estLabel = e => e === "Pendiente" ? "Nuevo pedido" : e === "Anulado" ? "Para despacho" : e;
@@ -1105,6 +1113,8 @@ function pintarCartModal() {
   }).join("");
   $("cartItems").innerHTML = carrito.size ? filas : '<p style="text-align:center;color:var(--suave);padding:40px 0">Tu carrito está vacío.<br>Agrega productos del catálogo.</p>';
   $("cartSubtotal").textContent = "S/ " + soles(total);
+  // Marcar el botón de modo activo
+  document.querySelectorAll(".em-opt").forEach(b => b.classList.toggle("activo", b.dataset.modo === entregaModo));
   // Mostrar TOTAL con delivery cuando aplica
   const del = deliveryActual(total), lin = $("cartTotalLinea");
   if (lin) { if (del > 0) { $("cartTotalFin").textContent = "S/ " + soles(total + del); lin.style.display = ""; } else { lin.style.display = "none"; } }
@@ -1115,7 +1125,10 @@ function pintarCartModal() {
   const pct = meta > 0 ? Math.min(100, (total / meta) * 100) : 100;
   const msg = $("envioMsg"), fill = $("envioFill"), bar = $("envioBar");
   if (msg && fill && bar) {
-    if (total <= 0) {
+    if (entregaModo === "tienda") {
+      msg.textContent = "🏪 Recojo en tienda · sin costo de delivery";
+      msg.classList.add("gratis"); bar.style.display = "none";
+    } else if (total <= 0) {
       msg.textContent = ""; msg.classList.remove("gratis"); fill.style.width = "0%"; bar.style.display = "none";
     } else if (meta > 0 && total >= meta) {
       msg.textContent = "🎉 ¡Genial! Tienes envío GRATIS";
@@ -1129,6 +1142,7 @@ function pintarCartModal() {
   }
 }
 function deliveryActual(subtotal) {
+  if (entregaModo === "tienda") return 0;
   const meta = (PORTADA && PORTADA.envioGratis != null) ? Number(PORTADA.envioGratis) : ENVIO_GRATIS_DESDE;
   const costo = (PORTADA && PORTADA.deliveryCosto != null) ? Number(PORTADA.deliveryCosto) : 7;
   return (meta > 0 && subtotal > 0 && subtotal < meta) ? costo : 0;
@@ -1145,7 +1159,7 @@ function pintarCarrito() {
   $("carrito").innerHTML = filas.join("") || '<tr><td colspan="3">Tu pedido está vacío. Agrega productos del catálogo.</td></tr>';
   const delivery = deliveryActual(total), gran = total + delivery;
   if ($("subTotal")) $("subTotal").textContent = soles(total);
-  if ($("deliveryTxt")) $("deliveryTxt").textContent = delivery > 0 ? "S/ " + soles(delivery) : "GRATIS";
+  if ($("deliveryTxt")) $("deliveryTxt").textContent = entregaModo === "tienda" ? "🏪 Recojo en tienda" : (delivery > 0 ? "S/ " + soles(delivery) : "GRATIS");
   $("total").textContent = soles(gran);
   if ($("cartN")) { $("cartN").textContent = [...carrito.values()].reduce((a, b) => a + b, 0); $("cartT").textContent = soles(total); }
   // Si el carrito queda vacío, ocultamos "Tu pedido" y "Datos de entrega"
@@ -1700,6 +1714,8 @@ $("form").addEventListener("submit", async e => {
   const f = e.target, el = f.elements;
   // Datos de quien compra
   if (!validarCampos([[el.cliente, "Quien compra (tu nombre)"], [el.telefono, "Teléfono / WhatsApp"]])) return;
+  if ($("multi").checked && entregaModo === "tienda") entregaModo = "delivery";
+  const esTienda = entregaModo === "tienda";
   // Datos de entrega
   if ($("multi").checked) {
     const u = unidadesCarrito();
@@ -1711,6 +1727,8 @@ $("form").addEventListener("submit", async e => {
         [el["fecha_" + i], "Fecha de entrega — Entrega " + (i + 1)]
       ])) return;
     }
+  } else if (esTienda) {
+    if (!validarCampos([[el.destinatario, "Quien recoge"], [el.fecha, "Fecha de recojo"]])) return;
   } else {
     if (!validarCampos([
       [el.destinatario, "Quien recibe"],
@@ -1750,12 +1768,19 @@ $("form").addEventListener("submit", async e => {
     }
     msg = [...cab, ``, `ENTREGAS (${u.length}):`, ...bloques].join("\n");
     hojaPromesas = filas.map(enviarHoja);
+  } else if (esTienda) {
+    const dest = el.destinatario.value.trim() || cliente, fecha = el.fecha.value, franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
+    const telD = el.tel_destinatario.value.trim(), observaciones = (el.observaciones ? el.observaciones.value.trim() : "");
+    msg = [...cab, ``, `🏪 RECOJO EN TIENDA`, `Recoge: ${dest}${telD ? " (" + telD + ")" : ""}`, `Fecha de recojo: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
+    hojaPromesas = [enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
+                 destinatario: dest, tel_destinatario: telD, direccion: "RECOJO EN TIENDA", referencia: "", distrito: "Tienda", fecha, franja, tarjeta, observaciones })];
+    entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: "RECOJO EN TIENDA", referencia: "", distrito: "Tienda", fecha, franja, tarjeta, observaciones });
   } else {
     const dest = el.destinatario.value.trim(), dir = el.direccion.value.trim(), dist = el.distrito.value.trim(), fecha = el.fecha.value;
     if (!dest || !dir || !dist || !fecha) { alert("Completa los datos de entrega (quien recibe, dirección, distrito y fecha)."); return; }
     const telD = el.tel_destinatario.value.trim(), franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
     const referencia = (el.referencia ? el.referencia.value.trim() : ""), observaciones = (el.observaciones ? el.observaciones.value.trim() : "");
-    msg = [...cab, ``, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, referencia ? `Referencia: ${referencia}` : "", `Entrega: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
+    msg = [...cab, ``, `🛵 DELIVERY A DOMICILIO`, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, referencia ? `Referencia: ${referencia}` : "", `Entrega: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
     hojaPromesas = [enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
                  destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones })];
     entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
@@ -1775,7 +1800,7 @@ $("form").addEventListener("submit", async e => {
   try { await Promise.race([Promise.allSettled(hojaPromesas), new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
   // 4) Limpiar y avisar
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
-  carrito.clear(); pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
+  carrito.clear(); entregaModo = "delivery"; pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
   // 5) Abrir WhatsApp (ya con el pedido guardado en la nube y en el Excel)
   location.href = `https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg);
 });
@@ -1830,6 +1855,11 @@ $("fEstado").addEventListener("change", pintarPedidos);
 $("fPeriodo").addEventListener("change", pintarPedidos);
 $("dPeriodo").addEventListener("change", pintarDashboard);
 $("verPedido").addEventListener("click", () => { pintarCartModal(); $("cartModal").classList.add("abierto"); });
+document.addEventListener("click", e => {
+  const b = e.target.closest(".em-opt"); if (!b) return;
+  entregaModo = b.dataset.modo;
+  pintarCarrito();
+});
 $("cartClose").addEventListener("click", () => $("cartModal").classList.remove("abierto"));
 $("cartModal").addEventListener("click", e => { if (e.target.id === "cartModal") $("cartModal").classList.remove("abierto"); });
 $("verCarrito").addEventListener("click", () => { $("cartModal").classList.remove("abierto"); const visible = el => el && el.offsetParent !== null; const navD = document.querySelector(".nav-desktop"), navM = document.querySelector(".nav-mobile"); const dest = visible(navD) ? navD : (visible(navM) ? navM : $("grid")); if (dest) dest.scrollIntoView({ behavior: "smooth", block: "start" }); });
