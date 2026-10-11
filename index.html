@@ -338,14 +338,11 @@
   .mon-det-head { display:flex; align-items:center; justify-content:space-between; padding:14px 22px; background:var(--rojo); color:#fff; font-size:24px; font-weight:800; border-radius:16px 16px 0 0; position:sticky; top:0; z-index:2; }
   .mon-det-head button { background:rgba(255,255,255,.2); color:#fff; border:0; width:48px; height:48px; border-radius:50%; font-size:26px; cursor:pointer; }
   .mon-det-body { padding:16px 20px 22px; color:#fff; }
-  .mon-det-body .md-cab { font-size:20px; line-height:1.5; margin-bottom:12px; color:#f1eaea; }
-  .mon-det-body .md-item { display:flex; flex-direction:column; align-items:center; gap:14px; padding:0 0 16px; border-bottom:1px solid #4a3f45; }
-  .mon-det-body .md-item img, .mon-det-body .md-noimg { width:100%; max-width:100%; height:auto; max-height:82vh; border-radius:14px; object-fit:contain; background:#1c171b; display:flex; align-items:center; justify-content:center; font-size:120px; }
-  .mon-det-body .md-info { text-align:center; }
-  .mon-det-body .md-info b { font-size:30px; }
-  .mon-det-body .md-info p { margin:8px 0; font-size:22px; color:#eadfe2; line-height:1.4; }
-  .mon-det-body .md-info span { font-size:24px; font-weight:800; color:#ff8a8a; }
-  .mon-det-body .md-ent { font-size:19px; margin-top:16px; padding:14px 16px; background:#1f1a1e; border-left:4px solid var(--rojo); border-radius:10px; line-height:1.5; color:#f1eaea; }
+  .mon-det-body .md-item { display:flex; flex-direction:row; align-items:center; gap:26px; }
+  .mon-det-body .md-item img, .mon-det-body .md-noimg { flex:1 1 auto; min-width:0; max-width:78%; height:auto; max-height:84vh; border-radius:14px; object-fit:contain; background:#1c171b; display:flex; align-items:center; justify-content:center; font-size:120px; }
+  .mon-det-body .md-info { flex:0 0 300px; text-align:left; }
+  .mon-det-body .md-info b { font-size:34px; display:block; margin-bottom:14px; }
+  .mon-det-body .md-info p { margin:0; font-size:26px; color:#eadfe2; line-height:1.5; }
   .mon-prod { font-size:18px; margin:10px 0; font-weight:600; display:flex; flex-wrap:wrap; gap:12px; }
   .mon-prod-chip { display:inline-flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; background:rgba(255,255,255,.08); border-radius:14px; padding:10px; }
   .mon-prod-chip img { width:200px; height:200px; max-width:46vw; border-radius:12px; object-fit:cover; }
@@ -1781,13 +1778,10 @@ function verDetallePedido(id) {
     const foto = i.foto || (im ? im.foto : ""), desc = i.desc || (im ? im.desc : "");
     return `<div class="md-item">
       ${foto ? `<img src="${esc(foto)}" alt="">` : `<div class="md-noimg">🌹</div>`}
-      <div class="md-info"><b>${i.cantidad}× ${esc(i.producto)}</b>${desc ? `<p>${esc(desc)}</p>` : ""}<span>S/ ${soles((i.precio||0)*(i.cantidad||1))}</span></div>
+      <div class="md-info"><b>${i.cantidad}× ${esc(i.producto)}</b>${desc ? `<p>${esc(desc)}</p>` : ""}</div>
     </div>`;
   }).join("");
-  const ent = (p.entregas || []).map((x, i) => `<div class="md-ent">${p.entregas.length > 1 ? "📍 Entrega " + (i+1) + ": " : "📍 "}${esc(x.destinatario||"")} — ${esc(x.direccion||"")}, ${esc(x.distrito||"")} · ${esc(x.fecha||"")} ${esc(x.franja||"")}${x.tarjeta ? `<br>💌 "${esc(x.tarjeta)}"` : ""}</div>`).join("");
-  $("monDetBody").innerHTML = `
-    <div class="md-cab"><b>${esc(p.cliente||"")}</b> · ${esc(p.telefono||"")}${p.dni ? " · DNI "+esc(p.dni) : ""}<br>${esc(p.fecha||"")} · Pago: ${esc(p.pago||"")} · Total: S/ ${soles(p.total||0)}</div>
-    ${its}${ent}`;
+  $("monDetBody").innerHTML = its;
   $("monDetalle").classList.add("abierto");
 }
 
