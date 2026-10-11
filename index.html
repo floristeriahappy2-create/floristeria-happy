@@ -818,6 +818,12 @@ const estLabel = e => e === "Pendiente" ? "Nuevo pedido" : e === "Anulado" ? "Pa
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const nuevoId = () => (CATALOGO.reduce((m,p) => Math.max(m, p.id), 0) + 1);
 
+/* ---------- Caché local grande (IndexedDB) para carga instantánea ---------- */
+function idbOpen() { return new Promise((res, rej) => { try { const r = indexedDB.open("happyCache", 1); r.onupgradeneeded = () => { try { r.result.createObjectStore("kv"); } catch (e) {} }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+async function idbGet(k) { try { const db = await idbOpen(); return await new Promise((res) => { const t = db.transaction("kv").objectStore("kv").get(k); t.onsuccess = () => res(t.result); t.onerror = () => res(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { try { const db = await idbOpen(); await new Promise((res) => { const t = db.transaction("kv", "readwrite").objectStore("kv").put(v, k); t.onsuccess = () => res(); t.onerror = () => res(); }); } catch (e) {} }
+function guardarCacheCatalogo() { idbSet("cat_cache", CATALOGO); try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch (e) { try { localStorage.removeItem("cat_cache"); } catch (e2) {} } }
+
 /* ---------- Carga y guardado ---------- */
 function cargarScript(src) {
   return new Promise((ok, mal) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = () => mal(new Error("No cargó " + src)); document.head.appendChild(t); });
@@ -853,7 +859,7 @@ async function iniciarNube() {
     await new Promise(listo => {
       nube.db.collection("productos").onSnapshot(snap => {
         CATALOGO = normalizar(snap.docs.map(d => d.data()));
-        try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch {}
+        guardarCacheCatalogo();
         if (primera) { primera = false; listo(); } else refrescar();
       }, err => { console.error(err); if (primera) { primera = false; listo(); } });
     });
@@ -1056,7 +1062,7 @@ async function optimizarFotos() {
   }
   if (nube) { for (const p of tocados) { try { await col().doc(String(p.id)).set(p); } catch {} } }
   else { try { localStorage.setItem(KEY, JSON.stringify(CATALOGO)); } catch {} }
-  try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch {}
+  guardarCacheCatalogo();
   refrescar(); mostrarPesoCatalogo();
   if (btn) { btn.disabled = false; btn.textContent = "🗜️ Optimizar todas las fotos"; }
   const ahorro = Math.max(0, antes - despues);
@@ -1138,7 +1144,7 @@ function pintarGrid() {
     return `
     <article class="card" data-ver="${p.id}">
       ${!p.stock ? '<span class="badge agot">AGOTADO</span>' : (enDesc ? '<span class="badge desc">EN DESCUENTO</span>' : "")}
-      <div class="foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy">` : "🌹"}</div>
+      <div class="foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy" decoding="async">` : "🌹"}</div>
       <div class="body">
         <h3>${esc(p.nombre)}</h3>
         <div class="precio">S/ ${soles(p.precio)}${enDesc ? ` <span class="precio-antes">S/ ${soles(p.precioAntes)}</span>` : ""}</div>
@@ -1867,7 +1873,7 @@ $("form").addEventListener("submit", async e => {
   const total = subtotalNum + deliveryFee;
   const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7), fechaISO = new Date().toISOString();
   const pedidoId = "P" + Date.now();
-  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0, foto: p.foto || "", desc: p.desc || "" }; });
+  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0, desc: p.desc || "" }; });
   const entregas = [];
   const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, deliveryFee > 0 ? `🛵 Delivery: S/ ${soles(deliveryFee)}` : `🛵 Delivery: GRATIS`, `Total: S/ ${soles(total)}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
 
@@ -2053,9 +2059,13 @@ $("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pint
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
 document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
 pintarSecciones(); pintarChecks();
-// Mostrar al instante lo último que se vio (copia local), mientras se conecta a la nube
-try { const c = localStorage.getItem("cat_cache"); if (c) { CATALOGO = normalizar(JSON.parse(c)); refrescar(); } } catch {}
-cargar().then(() => { refrescar(); aplicarPortada(); });
+// Mostrar al instante lo último que se vio (caché grande IndexedDB, con respaldo localStorage), mientras se conecta a la nube
+(async () => {
+  let pintado = false;
+  try { const c = await idbGet("cat_cache"); if (c && c.length) { CATALOGO = normalizar(c); refrescar(); pintado = true; } } catch (e) {}
+  if (!pintado) { try { const ls = localStorage.getItem("cat_cache"); if (ls) { CATALOGO = normalizar(JSON.parse(ls)); refrescar(); } } catch (e) {} }
+  cargar().then(() => { refrescar(); aplicarPortada(); });
+})();
 </script>
 </body>
 </html>
