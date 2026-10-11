@@ -334,16 +334,17 @@
   .mon-hora { font-size:14px; color:#c9b8bd; }
   .mon-detalle { position:absolute; inset:0; background:rgba(0,0,0,.88); display:none; align-items:center; justify-content:center; padding:24px; z-index:10; }
   .mon-detalle.abierto { display:flex; }
-  .mon-det-caja { background:#2a2228; border-radius:18px; max-width:720px; width:100%; max-height:88%; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.6); }
-  .mon-det-head { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; background:var(--rojo); color:#fff; font-size:24px; font-weight:800; border-radius:18px 18px 0 0; position:sticky; top:0; }
+  .mon-det-caja { background:#2a2228; border-radius:18px; max-width:860px; width:100%; max-height:94%; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .mon-det-head { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; background:var(--rojo); color:#fff; font-size:24px; font-weight:800; border-radius:18px 18px 0 0; position:sticky; top:0; z-index:2; }
   .mon-det-head button { background:rgba(255,255,255,.2); color:#fff; border:0; width:48px; height:48px; border-radius:50%; font-size:26px; cursor:pointer; }
   .mon-det-body { padding:24px; color:#fff; }
   .mon-det-body .md-cab { font-size:20px; line-height:1.5; margin-bottom:18px; color:#f1eaea; }
-  .mon-det-body .md-item { display:flex; gap:18px; align-items:center; padding:14px 0; border-bottom:1px solid #4a3f45; }
-  .mon-det-body .md-item img, .mon-det-body .md-noimg { width:160px; height:160px; border-radius:14px; object-fit:cover; flex:0 0 auto; background:#3a3038; display:flex; align-items:center; justify-content:center; font-size:60px; }
-  .mon-det-body .md-info b { font-size:24px; }
-  .mon-det-body .md-info p { margin:6px 0; font-size:18px; color:#d9cdd0; }
-  .mon-det-body .md-info span { font-size:22px; font-weight:800; color:#ff8a8a; }
+  .mon-det-body .md-item { display:flex; flex-direction:column; align-items:center; gap:14px; padding:16px 0 20px; border-bottom:1px solid #4a3f45; }
+  .mon-det-body .md-item img, .mon-det-body .md-noimg { width:100%; max-width:640px; height:auto; max-height:72vh; border-radius:16px; object-fit:contain; background:#1c171b; display:flex; align-items:center; justify-content:center; font-size:90px; }
+  .mon-det-body .md-info { text-align:center; }
+  .mon-det-body .md-info b { font-size:30px; }
+  .mon-det-body .md-info p { margin:8px 0; font-size:22px; color:#eadfe2; line-height:1.4; }
+  .mon-det-body .md-info span { font-size:24px; font-weight:800; color:#ff8a8a; }
   .mon-det-body .md-ent { font-size:19px; margin-top:16px; padding:14px 16px; background:#1f1a1e; border-left:4px solid var(--rojo); border-radius:10px; line-height:1.5; color:#f1eaea; }
   .mon-prod { font-size:18px; margin:10px 0; font-weight:600; display:flex; flex-wrap:wrap; gap:12px; }
   .mon-prod-chip { display:inline-flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; background:rgba(255,255,255,.08); border-radius:14px; padding:10px; }
