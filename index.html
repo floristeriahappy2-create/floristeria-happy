@@ -52,6 +52,10 @@
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<!-- Precargar el SDK de Firebase en paralelo para que la tienda abra más rápido -->
+<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js" crossorigin>
+<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js" crossorigin>
+<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js" crossorigin>
 <style>
   :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#fdf5f0; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e9ddd8;
     box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
@@ -2063,7 +2067,13 @@ pintarSecciones(); pintarChecks();
 (async () => {
   let pintado = false;
   try { const c = await idbGet("cat_cache"); if (c && c.length) { CATALOGO = normalizar(c); refrescar(); pintado = true; } } catch (e) {}
-  if (!pintado) { try { const ls = localStorage.getItem("cat_cache"); if (ls) { CATALOGO = normalizar(JSON.parse(ls)); refrescar(); } } catch (e) {} }
+  if (!pintado) { try { const ls = localStorage.getItem("cat_cache"); if (ls) { const a = normalizar(JSON.parse(ls)); if (a.length) { CATALOGO = a; refrescar(); pintado = true; } } } catch (e) {} }
+  // Primera visita sin caché: pintar al instante desde el archivo estático catalogo.json (GitHub Pages es muy rápido), mientras Firebase conecta por detrás
+  if (!pintado) {
+    for (const nombre of ["catalogo.json", "cat%C3%A1logo.json"]) {
+      try { const r = await fetch(nombre, { cache: "force-cache" }); if (r.ok) { const a = normalizar(await r.json()); if (a.length) { CATALOGO = a; refrescar(); guardarCacheCatalogo(); pintado = true; break; } } } catch (e) {}
+    }
+  }
   cargar().then(() => { refrescar(); aplicarPortada(); });
 })();
 </script>
