@@ -286,6 +286,13 @@
   .foto-modal .fm-tit { color:#fff; font-size:18px; font-weight:700; margin-top:14px; text-align:center; }
   .foto-modal .fm-desc { color:#eee; font-size:14px; margin-top:6px; text-align:center; max-width:500px; }
   .foto-modal .fm-cerrar { position:absolute; top:16px; right:20px; background:rgba(255,255,255,.2); color:#fff; border:0; width:44px; height:44px; border-radius:50%; font-size:22px; cursor:pointer; }
+  .dp-cab { background:var(--rosado); border-radius:10px; padding:12px 14px; font-size:14px; margin-bottom:14px; line-height:1.5; color:var(--texto); }
+  .dp-item { display:flex; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--borde); }
+  .dp-item img, .dp-noimg { width:80px; height:80px; border-radius:12px; object-fit:cover; flex:0 0 auto; background:var(--rosado); display:flex; align-items:center; justify-content:center; font-size:34px; }
+  .dp-info b { font-size:15px; color:var(--texto); }
+  .dp-info p { margin:3px 0; font-size:13px; color:var(--suave); }
+  .dp-info span { font-size:14px; font-weight:700; color:var(--rojo); }
+  .dp-ent { font-size:14px; color:var(--texto); margin-top:12px; padding:10px 12px; background:var(--fondo); border-left:3px solid var(--rojo); border-radius:8px; line-height:1.5; }
   .ped-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
   .ped-b { border:1.5px solid var(--borde); background:var(--card); color:var(--texto); border-radius:16px; padding:6px 12px; font-size:13px; cursor:pointer; }
   .ped-b.activo { background:var(--rojo); border-color:var(--rojo); color:#fff; font-weight:600; }
@@ -325,7 +332,9 @@
   .mon-urg.urg { background:#ff9800; color:#000; } .mon-urg.venc { background:#e53935; color:#fff; } .mon-urg.hoy { background:#e0a800; color:#000; }
   .mon-card h3 { margin:0 0 4px; font-size:22px; }
   .mon-hora { font-size:14px; color:#c9b8bd; }
-  .mon-prod { font-size:18px; margin:10px 0; font-weight:600; }
+  .mon-prod { font-size:18px; margin:10px 0; font-weight:600; display:flex; flex-wrap:wrap; gap:8px; }
+  .mon-prod-chip { display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:rgba(255,255,255,.08); border-radius:10px; padding:5px 10px; }
+  .mon-prod-chip img { width:40px; height:40px; border-radius:8px; object-fit:cover; }
   .mon-ent { font-size:15px; color:#d9cdd0; margin-top:4px; }
   .mon-badge { display:inline-block; margin-top:10px; padding:3px 12px; border-radius:14px; font-size:14px; font-weight:700; }
   .mon-vacio { grid-column:1/-1; text-align:center; color:#8a7d81; font-size:20px; padding:60px 0; }
@@ -674,6 +683,13 @@
   <img id="fmImg" src="" alt="">
   <div class="fm-tit" id="fmTit"></div>
   <div class="fm-desc" id="fmDesc"></div>
+</div>
+
+<div id="detPedModal" class="cart-modal">
+  <div class="cart-panel info-panel">
+    <div class="cart-head"><h3>🌹 Detalle del pedido</h3><button id="dpCerrar" aria-label="Cerrar">✕</button></div>
+    <div class="info-body" id="dpBody"></div>
+  </div>
 </div>
 
 <script>
@@ -1430,7 +1446,11 @@ function pintarMonitor(idNuevo) {
   $("monCount").textContent = activos.length + " pedido(s) por atender" + (urgentes ? "  ·  🔴 " + urgentes + " urgente(s)" : "");
   $("monGrid").innerHTML = activos.length ? activos.map(({ p, dl }) => {
     const e = p.estado || "Pendiente", u = urgencia(dl);
-    const prod = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
+    const foto1 = (p.items || []).map(i => i.foto || (CATALOGO.find(x => x.nombre === i.producto) || {}).foto).find(Boolean) || "";
+    const prod = (p.items || []).map(i => {
+      const foto = i.foto || (CATALOGO.find(x => x.nombre === i.producto) || {}).foto || "";
+      return `<span class="mon-prod-chip" ${foto ? `data-monver="${p.id}"` : ""}>${foto ? `<img src="${esc(foto)}" alt="">` : "🌹"} ${i.cantidad}× ${esc(i.producto)}</span>`;
+    }).join("");
     const ent = (p.entregas || []).map((x, i) => `<div class="mon-ent">${p.entregas.length > 1 ? "📍" + (i + 1) + " " : "📍 "}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}</div>`).join("");
     return `<div class="mon-card ${u.clase} ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
       <button class="mon-check" data-monlisto="${p.id}" title="Marcar como atendido / quitar del monitor">✓</button>
@@ -1722,10 +1742,31 @@ $("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.
 $("monSalir").onclick = () => { monitorAbierto = false; clearInterval(monInterval); clearInterval(monTick); $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
 $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenElement) m.requestFullscreen && m.requestFullscreen(); else document.exitFullscreen(); };
 $("monGrid").addEventListener("click", e => {
-  const b = e.target.closest("[data-monlisto]"); if (!b) return;
-  const id = b.dataset.monlisto, p = PEDIDOS.find(x => x.id === id);
-  if (confirm(`¿Marcar como atendido el pedido de "${p ? p.cliente : ""}" y quitarlo del monitor?`)) { cambiarEstado(id, "Entregado"); pintarMonitor(); }
+  const b = e.target.closest("[data-monlisto]");
+  if (b) {
+    const id = b.dataset.monlisto, p = PEDIDOS.find(x => x.id === id);
+    if (confirm(`¿Marcar como atendido el pedido de "${p ? p.cliente : ""}" y quitarlo del monitor?`)) { cambiarEstado(id, "Entregado"); pintarMonitor(); }
+    return;
+  }
+  const v = e.target.closest("[data-monver]");
+  if (v) { verDetallePedido(v.dataset.monver); }
 });
+function verDetallePedido(id) {
+  const p = PEDIDOS.find(x => x.id === id); if (!p) return;
+  const its = (p.items || []).map(i => {
+    const im = CATALOGO.find(x => x.nombre === i.producto);
+    const foto = i.foto || (im ? im.foto : ""), desc = i.desc || (im ? im.desc : "");
+    return `<div class="dp-item">
+      ${foto ? `<img src="${esc(foto)}" alt="">` : `<div class="dp-noimg">🌹</div>`}
+      <div class="dp-info"><b>${i.cantidad}× ${esc(i.producto)}</b>${desc ? `<p>${esc(desc)}</p>` : ""}<span>S/ ${soles((i.precio||0)*(i.cantidad||1))}</span></div>
+    </div>`;
+  }).join("");
+  const ent = (p.entregas || []).map((x, i) => `<div class="dp-ent">${p.entregas.length > 1 ? "📍 Entrega " + (i+1) + ": " : "📍 "}${esc(x.destinatario||"")} — ${esc(x.direccion||"")}, ${esc(x.distrito||"")} · ${esc(x.fecha||"")} ${esc(x.franja||"")}${x.tarjeta ? `<br>💌 "${esc(x.tarjeta)}"` : ""}</div>`).join("");
+  $("dpBody").innerHTML = `
+    <div class="dp-cab"><b>${esc(p.cliente||"")}</b> · ${esc(p.telefono||"")}${p.dni ? " · DNI "+esc(p.dni) : ""}<br>${esc(p.fecha||"")} · Pago: ${esc(p.pago||"")} · Total: S/ ${soles(p.total||0)}</div>
+    ${its}${ent}`;
+  $("detPedModal").classList.add("abierto");
+}
 
 /* Pedido por WhatsApp */
 function enviarHoja(fila) {
@@ -1922,6 +1963,8 @@ document.addEventListener("click", e => {
 $("infoClose").addEventListener("click", () => $("infoModal").classList.remove("abierto"));
 $("fmCerrar").addEventListener("click", () => $("fotoModal").classList.remove("abierto"));
 $("fotoModal").addEventListener("click", e => { if (e.target.id === "fotoModal") $("fotoModal").classList.remove("abierto"); });
+$("dpCerrar").addEventListener("click", () => $("detPedModal").classList.remove("abierto"));
+$("detPedModal").addEventListener("click", e => { if (e.target.id === "detPedModal") $("detPedModal").classList.remove("abierto"); });
 $("infoModal").addEventListener("click", e => { if (e.target.id === "infoModal") $("infoModal").classList.remove("abierto"); });
 if ($("fabLlamar")) $("fabLlamar").href = "tel:+" + WHATSAPP;
 // Botón de temporada → llevar al catálogo (el filtro lo aplica el manejador de data-tab)
