@@ -52,10 +52,6 @@
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-<!-- Precargar el SDK de Firebase en paralelo para que la tienda abra más rápido -->
-<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js" crossorigin>
-<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js" crossorigin>
-<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js" crossorigin>
 <style>
   :root { --rojo:#c2272f; --rojo2:#9e1b22; --rosado:#fde2e3; --fondo:#fdf5f0; --card:#fff; --texto:#2a2224; --suave:#6e6466; --borde:#e9ddd8;
     box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
@@ -741,7 +737,6 @@ function revisarCupo(fecha, franja, avisoEl) {
     if (avisoEl && n >= CUPO_MAX) { avisoEl.style.display = "block"; avisoEl.textContent = "⚠️ La franja " + franja + " del " + fecha + " ya está llena. Por favor elige otra franja u otra fecha."; }
   }).catch(() => {});
 }
-function liberarCupos(cids) { if (!nube) return; for (const cid of cids) { nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(() => {}); if (cuposCache[cid]) cuposCache[cid]--; } }
 const PAGOS = {
   "Yape / Plin": `<b>💳 Yape / Plin</b><br>941905462 — Inversiones y Servicios Happy`,
   "Transferencia BCP": `<b>💳 Cuenta BCP</b><br>2908965228048 — Inversiones y Servicios Happy`,
@@ -822,12 +817,6 @@ const estLabel = e => e === "Pendiente" ? "Nuevo pedido" : e === "Anulado" ? "Pa
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const nuevoId = () => (CATALOGO.reduce((m,p) => Math.max(m, p.id), 0) + 1);
 
-/* ---------- Caché local grande (IndexedDB) para carga instantánea ---------- */
-function idbOpen() { return new Promise((res, rej) => { try { const r = indexedDB.open("happyCache", 1); r.onupgradeneeded = () => { try { r.result.createObjectStore("kv"); } catch (e) {} }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
-async function idbGet(k) { try { const db = await idbOpen(); return await new Promise((res) => { const t = db.transaction("kv").objectStore("kv").get(k); t.onsuccess = () => res(t.result); t.onerror = () => res(null); }); } catch (e) { return null; } }
-async function idbSet(k, v) { try { const db = await idbOpen(); await new Promise((res) => { const t = db.transaction("kv", "readwrite").objectStore("kv").put(v, k); t.onsuccess = () => res(); t.onerror = () => res(); }); } catch (e) {} }
-function guardarCacheCatalogo() { idbSet("cat_cache", CATALOGO); try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch (e) { try { localStorage.removeItem("cat_cache"); } catch (e2) {} } }
-
 /* ---------- Carga y guardado ---------- */
 function cargarScript(src) {
   return new Promise((ok, mal) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = () => mal(new Error("No cargó " + src)); document.head.appendChild(t); });
@@ -863,7 +852,7 @@ async function iniciarNube() {
     await new Promise(listo => {
       nube.db.collection("productos").onSnapshot(snap => {
         CATALOGO = normalizar(snap.docs.map(d => d.data()));
-        guardarCacheCatalogo();
+        try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch {}
         if (primera) { primera = false; listo(); } else refrescar();
       }, err => { console.error(err); if (primera) { primera = false; listo(); } });
     });
@@ -1066,7 +1055,7 @@ async function optimizarFotos() {
   }
   if (nube) { for (const p of tocados) { try { await col().doc(String(p.id)).set(p); } catch {} } }
   else { try { localStorage.setItem(KEY, JSON.stringify(CATALOGO)); } catch {} }
-  guardarCacheCatalogo();
+  try { localStorage.setItem("cat_cache", JSON.stringify(CATALOGO)); } catch {}
   refrescar(); mostrarPesoCatalogo();
   if (btn) { btn.disabled = false; btn.textContent = "🗜️ Optimizar todas las fotos"; }
   const ahorro = Math.max(0, antes - despues);
@@ -1148,7 +1137,7 @@ function pintarGrid() {
     return `
     <article class="card" data-ver="${p.id}">
       ${!p.stock ? '<span class="badge agot">AGOTADO</span>' : (enDesc ? '<span class="badge desc">EN DESCUENTO</span>' : "")}
-      <div class="foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy" decoding="async">` : "🌹"}</div>
+      <div class="foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy">` : "🌹"}</div>
       <div class="body">
         <h3>${esc(p.nombre)}</h3>
         <div class="precio">S/ ${soles(p.precio)}${enDesc ? ` <span class="precio-antes">S/ ${soles(p.precioAntes)}</span>` : ""}</div>
@@ -1877,7 +1866,7 @@ $("form").addEventListener("submit", async e => {
   const total = subtotalNum + deliveryFee;
   const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7), fechaISO = new Date().toISOString();
   const pedidoId = "P" + Date.now();
-  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0, desc: p.desc || "" }; });
+  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0, foto: p.foto || "", desc: p.desc || "" }; });
   const entregas = [];
   const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, deliveryFee > 0 ? `🛵 Delivery: S/ ${soles(deliveryFee)}` : `🛵 Delivery: GRATIS`, `Total: S/ ${soles(total)}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
 
@@ -1919,34 +1908,15 @@ $("form").addEventListener("submit", async e => {
 
   // 0) Bloquear fecha/franja ya vencida
   for (const en of entregas) { if (franjaVencida(en.fecha, en.franja)) { alert("⛔ La fecha u horario que elegiste ya pasó:\n\n👉 " + en.fecha + "  " + (en.franja || "") + "\n\nPor favor selecciona otra franja horaria u otra fecha."); return; } }
-  // 1) Reservar cupo de forma ATÓMICA (máximo CUPO_MAX pedidos por franja; no deja pasar más)
-  const cuposReservados = [];
-  if (nube) {
-    for (const en of entregas) {
-      const cid = cupoId(en.fecha, en.franja);
-      try {
-        await nube.db.runTransaction(async t => {
-          const ref = nube.db.collection("cupos").doc(cid);
-          const doc = await t.get(ref);
-          const n = doc.exists ? (doc.data().count || 0) : 0;
-          if (n >= CUPO_MAX) throw { lleno: true };
-          t.set(ref, { count: n + 1, fecha: en.fecha, franja: en.franja }, { merge: true });
-        });
-        cuposReservados.push(cid); cuposCache[cid] = (cuposCache[cid] || 0) + 1;
-      } catch (err) {
-        if (err && err.lleno) { liberarCupos(cuposReservados); alert("⛔ La franja " + en.franja + " del " + en.fecha + " ya está llena (máximo " + CUPO_MAX + " pedidos).\n\nPor favor elige otra franja horaria u otra fecha."); return; }
-        // Error de red en la transacción: no bloqueamos la venta.
-      }
-    }
-  } else {
-    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= CUPO_MAX) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + CUPO_MAX + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
-  }
+  // 1) Verificar cupo ANTES de guardar
+  for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= CUPO_MAX) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + CUPO_MAX + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
   // 2) Guardar el pedido en la nube y ESPERAR a que termine (para que sí aparezca en el panel)
   if (nube) {
     try {
       await nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas });
-    } catch (err) { liberarCupos(cuposReservados); alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
+    } catch (err) { alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
     for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
+    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(1), fecha: en.fecha, franja: en.franja }, { merge: true }).catch(() => {}); cuposCache[cid] = (cuposCache[cid] || 0) + 1; }
   }
   // 3) Esperar a que el Excel reciba el pedido (máx 3 s) antes de salir a WhatsApp
   try { await Promise.race([Promise.allSettled(hojaPromesas), new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
@@ -2063,19 +2033,9 @@ $("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pint
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
 document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
 pintarSecciones(); pintarChecks();
-// Mostrar al instante lo último que se vio (caché grande IndexedDB, con respaldo localStorage), mientras se conecta a la nube
-(async () => {
-  let pintado = false;
-  try { const c = await idbGet("cat_cache"); if (c && c.length) { CATALOGO = normalizar(c); refrescar(); pintado = true; } } catch (e) {}
-  if (!pintado) { try { const ls = localStorage.getItem("cat_cache"); if (ls) { const a = normalizar(JSON.parse(ls)); if (a.length) { CATALOGO = a; refrescar(); pintado = true; } } } catch (e) {} }
-  // Primera visita sin caché: pintar al instante desde el archivo estático catalogo.json (GitHub Pages es muy rápido), mientras Firebase conecta por detrás
-  if (!pintado) {
-    for (const nombre of ["catalogo.json", "cat%C3%A1logo.json"]) {
-      try { const r = await fetch(nombre, { cache: "force-cache" }); if (r.ok) { const a = normalizar(await r.json()); if (a.length) { CATALOGO = a; refrescar(); guardarCacheCatalogo(); pintado = true; break; } } } catch (e) {}
-    }
-  }
-  cargar().then(() => { refrescar(); aplicarPortada(); });
-})();
+// Mostrar al instante lo último que se vio (copia local), mientras se conecta a la nube
+try { const c = localStorage.getItem("cat_cache"); if (c) { CATALOGO = normalizar(JSON.parse(c)); refrescar(); } } catch {}
+cargar().then(() => { refrescar(); aplicarPortada(); });
 </script>
 </body>
 </html>
