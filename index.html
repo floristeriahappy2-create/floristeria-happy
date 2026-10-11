@@ -332,9 +332,11 @@
   .mon-urg.urg { background:#ff9800; color:#000; } .mon-urg.venc { background:#e53935; color:#fff; } .mon-urg.hoy { background:#e0a800; color:#000; }
   .mon-card h3 { margin:0 0 4px; font-size:22px; }
   .mon-hora { font-size:14px; color:#c9b8bd; }
-  .mon-prod { font-size:18px; margin:10px 0; font-weight:600; display:flex; flex-wrap:wrap; gap:8px; }
-  .mon-prod-chip { display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:rgba(255,255,255,.08); border-radius:10px; padding:5px 10px; }
-  .mon-prod-chip img { width:40px; height:40px; border-radius:8px; object-fit:cover; }
+  .mon-prod { font-size:18px; margin:10px 0; font-weight:600; display:flex; flex-wrap:wrap; gap:12px; }
+  .mon-prod-chip { display:inline-flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; background:rgba(255,255,255,.08); border-radius:14px; padding:10px; }
+  .mon-prod-chip img { width:200px; height:200px; max-width:46vw; border-radius:12px; object-fit:cover; }
+  .mon-prod-chip .mpc-nom { font-size:20px; font-weight:700; text-align:center; }
+  @media (max-width:560px){ .mon-prod-chip img { width:150px; height:150px; } }
   .mon-ent { font-size:15px; color:#d9cdd0; margin-top:4px; }
   .mon-badge { display:inline-block; margin-top:10px; padding:3px 12px; border-radius:14px; font-size:14px; font-weight:700; }
   .mon-vacio { grid-column:1/-1; text-align:center; color:#8a7d81; font-size:20px; padding:60px 0; }
@@ -1449,7 +1451,7 @@ function pintarMonitor(idNuevo) {
     const foto1 = (p.items || []).map(i => i.foto || (CATALOGO.find(x => x.nombre === i.producto) || {}).foto).find(Boolean) || "";
     const prod = (p.items || []).map(i => {
       const foto = i.foto || (CATALOGO.find(x => x.nombre === i.producto) || {}).foto || "";
-      return `<span class="mon-prod-chip" ${foto ? `data-monver="${p.id}"` : ""}>${foto ? `<img src="${esc(foto)}" alt="">` : "🌹"} ${i.cantidad}× ${esc(i.producto)}</span>`;
+      return `<span class="mon-prod-chip" ${foto ? `data-monver="${p.id}"` : ""}>${foto ? `<img src="${esc(foto)}" alt="">` : `<div style="font-size:90px">🌹</div>`}<span class="mpc-nom">${i.cantidad}× ${esc(i.producto)}</span></span>`;
     }).join("");
     const ent = (p.entregas || []).map((x, i) => `<div class="mon-ent">${p.entregas.length > 1 ? "📍" + (i + 1) + " " : "📍 "}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}</div>`).join("");
     return `<div class="mon-card ${u.clase} ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
