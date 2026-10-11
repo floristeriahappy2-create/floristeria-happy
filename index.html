@@ -274,6 +274,18 @@
   .ped-tel, .ped-items { font-size:13px; color:var(--suave); margin-top:4px; }
   .ped-items { color:var(--texto); font-weight:500; }
   .ped-ent { font-size:13px; color:var(--suave); margin-top:3px; padding-left:8px; border-left:2px solid var(--rosado); }
+  .ped-prods { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
+  .ped-prod { display:flex; align-items:center; gap:10px; cursor:pointer; }
+  .ped-prod img, .ped-prod-noimg { width:56px; height:56px; border-radius:10px; object-fit:cover; flex:0 0 auto; background:var(--rosado); display:flex; align-items:center; justify-content:center; font-size:24px; }
+  .ped-prod-info { display:flex; flex-direction:column; min-width:0; }
+  .ped-prod-info b { font-size:14px; color:var(--texto); }
+  .ped-prod-info span { font-size:12px; color:var(--suave); }
+  .foto-modal { position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; z-index:500; align-items:center; justify-content:center; flex-direction:column; padding:20px; }
+  .foto-modal.abierto { display:flex; }
+  .foto-modal img { max-width:100%; max-height:72vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+  .foto-modal .fm-tit { color:#fff; font-size:18px; font-weight:700; margin-top:14px; text-align:center; }
+  .foto-modal .fm-desc { color:#eee; font-size:14px; margin-top:6px; text-align:center; max-width:500px; }
+  .foto-modal .fm-cerrar { position:absolute; top:16px; right:20px; background:rgba(255,255,255,.2); color:#fff; border:0; width:44px; height:44px; border-radius:50%; font-size:22px; cursor:pointer; }
   .ped-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
   .ped-b { border:1.5px solid var(--borde); background:var(--card); color:var(--texto); border-radius:16px; padding:6px 12px; font-size:13px; cursor:pointer; }
   .ped-b.activo { background:var(--rojo); border-color:var(--rojo); color:#fff; font-weight:600; }
@@ -299,7 +311,9 @@
   .mon-btn { margin-left:auto; background:rgba(255,255,255,.15); color:#fff; border:0; padding:10px 16px; border-radius:8px; font-size:16px; cursor:pointer; }
   .mon-btn + .mon-btn { margin-left:8px; }
   .mon-grid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; padding:18px; align-content:start; }
-  .mon-card { background:#211b21; border-radius:14px; padding:16px 18px; border-left:8px solid var(--rojo); }
+  .mon-card { background:#211b21; border-radius:14px; padding:16px 18px; border-left:8px solid var(--rojo); position:relative; }
+  .mon-check { position:absolute; top:12px; right:12px; width:40px; height:40px; border-radius:50%; border:0; background:#2e7d32; color:#fff; font-size:22px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .mon-check:hover { background:#256628; }
   .mon-card.nuevo { animation:parpadeo 1s ease-in-out 3; }
   @keyframes parpadeo { 0%,100%{ background:#211b21; } 50%{ background:#4a2530; } }
   .mon-card.hoy { border-left-color:#e0a800 !important; }
@@ -655,6 +669,13 @@
   </div>
 </div>
 
+<div id="fotoModal" class="foto-modal">
+  <button class="fm-cerrar" id="fmCerrar" aria-label="Cerrar">✕</button>
+  <img id="fmImg" src="" alt="">
+  <div class="fm-tit" id="fmTit"></div>
+  <div class="fm-desc" id="fmDesc"></div>
+</div>
+
 <script>
 const WHATSAPP = "51941905462";
 const CUPO_MAX = 10;
@@ -912,7 +933,7 @@ function pintarTabs() {
   if (!filtro.sec && !filtro.group) filtro.sec = primeraSeccion();
   const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
   const temps = seccionesTemporada();
-  const tabs = [...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }, sec("macrame"), sec("suscripcion")];
+  const tabs = [...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), sec("macrame"), sec("suscripcion"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }];
   $("tabs").innerHTML = tabs.map(t => `<button class="tab${t.temporada ? " tab-temp" : ""}" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.temporada ? "✨ " : ""}${t.nombre}</button>`).join("");
   const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
   $("ocasiones").style.display = sub.length ? "" : "none";
@@ -1060,7 +1081,10 @@ function pintarGrid() {
   if (orden === "precio-asc") lista.sort((a,b) => a.precio - b.precio);
   else if (orden === "precio-desc") lista.sort((a,b) => b.precio - a.precio);
   else if (orden === "nombre") lista.sort((a,b) => a.nombre.localeCompare(b.nombre));
-  else lista.sort((a,b) => (b.stock > 0) - (a.stock > 0) || a.id - b.id);   // predeterminado: disponibles primero, en el orden en que se cargaron
+  else lista.sort((a,b) => {   // predeterminado: disponibles primero, luego los EN PROMOCIÓN, luego el orden de carga
+    const enPromoA = (a.precioAntes > a.precio) ? 1 : 0, enPromoB = (b.precioAntes > b.precio) ? 1 : 0;
+    return (b.stock > 0) - (a.stock > 0) || enPromoB - enPromoA || a.id - b.id;
+  });
   $("grid").innerHTML = lista.map(p => {
     const enDesc = p.precioAntes > p.precio, ahorro = enDesc ? p.precioAntes - p.precio : 0;
     return `
@@ -1314,6 +1338,8 @@ document.addEventListener("click", e => {
   if (d.imprmsg) imprimirMensaje(d.imprmsg);
   if (d.imprdatos) imprimirDatos(d.imprdatos);
   if (d.datoswa) datosWhatsApp(d.datoswa);
+  const vf = e.target.closest("[data-verfoto]");
+  if (vf) { $("fmImg").src = vf.dataset.verfoto; $("fmTit").textContent = vf.dataset.prodnom || ""; $("fmDesc").textContent = vf.dataset.proddesc || ""; $("fotoModal").classList.add("abierto"); return; }
   if (d.atab) {
     document.querySelectorAll(".atab").forEach(x => x.setAttribute("aria-selected", x.dataset.atab === d.atab));
     $("tabCatalogo").classList.toggle("oculto", d.atab !== "catalogo");
@@ -1405,6 +1431,7 @@ function pintarMonitor(idNuevo) {
     const prod = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
     const ent = (p.entregas || []).map((x, i) => `<div class="mon-ent">${p.entregas.length > 1 ? "📍" + (i + 1) + " " : "📍 "}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}</div>`).join("");
     return `<div class="mon-card ${u.clase} ${p.id === idNuevo ? "nuevo" : ""}" style="border-left-color:${col[e]}">
+      <button class="mon-check" data-monlisto="${p.id}" title="Marcar como atendido / quitar del monitor">✓</button>
       <h3>${esc(p.cliente || "")} <span class="mon-urg ${u.clase}" data-dl="${dl ? dl.getTime() : ''}" style="${u.txt ? '' : 'display:none'}">${u.txt}</span></h3>
       <div class="mon-hora">${esc(p.fecha || "")} · ${esc(p.telefono || "")}</div>
       <div class="mon-prod">${prod}</div>${ent}
@@ -1538,11 +1565,20 @@ function pintarPedidos() {
   $("listaPedidos").innerHTML = lista.length ? lista.map(p => {
     const e = p.estado || "Pendiente";
     const its = (p.items || []).map(i => `${i.cantidad}× ${esc(i.producto)}`).join(", ");
+    const fotosItems = (p.items || []).map(i => {
+      const im = CATALOGO.find(x => x.nombre === i.producto);
+      const foto = i.foto || (im ? im.foto : "");
+      const desc = i.desc || (im ? im.desc : "");
+      return `<div class="ped-prod" ${foto ? `data-verfoto="${esc(foto)}" data-prodnom="${esc(i.producto)}" data-proddesc="${esc(desc || "")}"` : ""}>
+        ${foto ? `<img src="${esc(foto)}" alt="${esc(i.producto)}">` : `<div class="ped-prod-noimg">🌹</div>`}
+        <div class="ped-prod-info"><b>${i.cantidad}× ${esc(i.producto)}</b>${desc ? `<span>${esc(desc)}</span>` : ""}</div>
+      </div>`;
+    }).join("");
     const ent = (p.entregas || []).map((x, i) => `<div class="ped-ent">${p.entregas.length > 1 ? (i + 1) + ") " : ""}${esc(x.destinatario || "")} — ${esc(x.direccion || "")}, ${esc(x.distrito || "")} · ${esc(x.fecha || "")} ${esc(x.franja || "")}${x.tarjeta ? ` · "${esc(x.tarjeta)}"` : ""}</div>`).join("");
     return `<div class="ped-card">
       <div class="ped-top"><b>${esc(p.cliente || "")}</b> · ${esc(p.fecha || "")}<span class="ped-estado" style="background:${col[e]}">${estLabel(e)}</span></div>
       <div class="ped-tel">${esc(p.telefono || "")} · Pago: ${esc(p.pago || "")} · Total: S/ ${soles(p.total || 0)}${p.dni ? " · DNI: " + esc(p.dni) : ""}</div>
-      <div class="ped-items">${its}</div>${ent}
+      <div class="ped-prods">${fotosItems}</div>${ent}
       <div class="ped-btns">${["Pendiente", "Pagado", "Entregado", "Anulado"].map(x => `<button class="ped-b ${x === e ? "activo" : ""}" data-estado="${p.id}|${x}">${estLabel(x)}</button>`).join("")}</div>
       <div class="ped-btns">
         <button class="secundario" data-imprmsg="${p.id}">💌 Imprimir mensaje</button>
@@ -1683,6 +1719,11 @@ let monInterval = null, monTick = null;
 $("btnMonitor").onclick = () => { monitorAbierto = true; $("monitor").classList.add("abierto"); if (audioCtx && audioCtx.state === "suspended") audioCtx.resume(); else beep(); pintarMonitor(); clearInterval(monInterval); clearInterval(monTick); monInterval = setInterval(() => monitorAbierto && pintarMonitor(), 60000); monTick = setInterval(tickMonitor, 1000); };
 $("monSalir").onclick = () => { monitorAbierto = false; clearInterval(monInterval); clearInterval(monTick); $("monitor").classList.remove("abierto"); if (document.fullscreenElement) document.exitFullscreen(); };
 $("monFull").onclick = () => { const m = $("monitor"); if (!document.fullscreenElement) m.requestFullscreen && m.requestFullscreen(); else document.exitFullscreen(); };
+$("monGrid").addEventListener("click", e => {
+  const b = e.target.closest("[data-monlisto]"); if (!b) return;
+  const id = b.dataset.monlisto, p = PEDIDOS.find(x => x.id === id);
+  if (confirm(`¿Marcar como atendido el pedido de "${p ? p.cliente : ""}" y quitarlo del monitor?`)) { cambiarEstado(id, "Entregado"); pintarMonitor(); }
+});
 
 /* Pedido por WhatsApp */
 function enviarHoja(fila) {
@@ -1746,7 +1787,7 @@ $("form").addEventListener("submit", async e => {
   const total = subtotalNum + deliveryFee;
   const ahora = new Date().toLocaleString("es-PE"), mes = new Date().toISOString().slice(0, 7), fechaISO = new Date().toISOString();
   const pedidoId = "P" + Date.now();
-  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0 }; });
+  const items = [...carrito].map(([id, c]) => { const p = CATALOGO.find(x => x.id === id); return { producto: p.nombre, cantidad: c, precio: p.precio, costo: p.costo || 0, foto: p.foto || "", desc: p.desc || "" }; });
   const entregas = [];
   const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, deliveryFee > 0 ? `🛵 Delivery: S/ ${soles(deliveryFee)}` : `🛵 Delivery: GRATIS`, `Total: S/ ${soles(total)}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
 
@@ -1877,6 +1918,8 @@ document.addEventListener("click", e => {
   $("infoModal").classList.add("abierto");
 });
 $("infoClose").addEventListener("click", () => $("infoModal").classList.remove("abierto"));
+$("fmCerrar").addEventListener("click", () => $("fotoModal").classList.remove("abierto"));
+$("fotoModal").addEventListener("click", e => { if (e.target.id === "fotoModal") $("fotoModal").classList.remove("abierto"); });
 $("infoModal").addEventListener("click", e => { if (e.target.id === "infoModal") $("infoModal").classList.remove("abierto"); });
 if ($("fabLlamar")) $("fabLlamar").href = "tel:+" + WHATSAPP;
 // Botón de temporada → llevar al catálogo (el filtro lo aplica el manejador de data-tab)
