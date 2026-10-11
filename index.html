@@ -739,6 +739,7 @@ const SECCIONES = [
   { id:"arreglos",     nombre:"Arreglos florales",  icono:"🌺" },
   { id:"flores-secas", nombre:"Flores secas",       icono:"🌾" },
   { id:"desayunos",    nombre:"Desayunos",          icono:"🥐" },
+  { id:"para-el",      nombre:"Para Él",            icono:"🤵" },
   { id:"macrame",      nombre:"Cuadros macramé",    icono:"🪢" },
   { id:"suscripcion",  nombre:"Suscripción floral", icono:"📅" },
   { id:"complementos", nombre:"Complementos",       icono:"🎁" }
@@ -746,6 +747,7 @@ const SECCIONES = [
 const TIPOS = [
   { id:"tulipanes",   nombre:"Tulipanes",   icono:"🌷" },
   { id:"rosas",       nombre:"Rosas",       icono:"🌹" },
+  { id:"girasoles",   nombre:"Girasoles",   icono:"🌻" },
   { id:"gerberas",    nombre:"Gerberas",    icono:"🌼" },
   { id:"lirios",      nombre:"Lirios",      icono:"🪷" },
   { id:"astromelias", nombre:"Astromelias", icono:"🌸" }
@@ -754,7 +756,6 @@ const OCASIONES = [
   { id:"cumpleanos",    nombre:"Cumpleaños",         icono:"🎂", tipo:"ocasion" },
   { id:"aniversario",   nombre:"Aniversario",        icono:"💞", tipo:"ocasion" },
   { id:"graduacion",    nombre:"Graduación",         icono:"🎓", tipo:"ocasion" },
-  { id:"para-el",       nombre:"Para él",            icono:"🤵", tipo:"ocasion" },
   { id:"inauguracion",  nombre:"Inauguraciones",     icono:"🎉", tipo:"ocasion" },
   { id:"novias",        nombre:"Novias",             icono:"👰", tipo:"ocasion" },
   { id:"escritorio",    nombre:"Para su escritorio", icono:"🪴", tipo:"ocasion" },
@@ -897,6 +898,7 @@ function leerSeccion(v) {
   if (t.includes("suscrip")) return "suscripcion";
   if (t.includes("arreglo") || t.includes("corona")) return "arreglos";
   if (t.includes("ramo") || t.includes("bouquet")) return "ramos";
+  if (t === "para el" || t === "para-el" || t.includes("para el")) return "para-el";
   return "";
 }
 function seccionesTemporada() {
@@ -933,7 +935,7 @@ function pintarTabs() {
   if (!filtro.sec && !filtro.group) filtro.sec = primeraSeccion();
   const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
   const temps = seccionesTemporada();
-  const tabs = [...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), sec("macrame"), sec("suscripcion"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }];
+  const tabs = [...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), sec("para-el"), sec("macrame"), sec("suscripcion"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }];
   $("tabs").innerHTML = tabs.map(t => `<button class="tab${t.temporada ? " tab-temp" : ""}" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.temporada ? "✨ " : ""}${t.nombre}</button>`).join("");
   const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
   $("ocasiones").style.display = sub.length ? "" : "none";
