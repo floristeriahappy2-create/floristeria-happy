@@ -1902,7 +1902,7 @@ $("form").addEventListener("submit", async e => {
   const entregas = [];
   const cab = [`Hola Floristería Happy 🌹, quiero hacer un pedido:`, ...lineas, deliveryFee > 0 ? `🛵 Delivery: S/ ${soles(deliveryFee)}` : `🛵 Delivery: GRATIS`, `Total: S/ ${soles(total)}`, ``, `Compra: ${cliente} (${telefono})`, dni ? `DNI: ${dni}` : "", `Pago: ${pago}`].filter(Boolean);
 
-  let msg, hojaPromesas = [];
+  let msg, filasHoja = [];
   if ($("multi").checked) {
     // Una entrega por cada unidad del carrito
     const u = unidadesCarrito();
@@ -1919,13 +1919,13 @@ $("form").addEventListener("submit", async e => {
       entregas.push({ producto: p.nombre, destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
     }
     msg = [...cab, ``, `ENTREGAS (${u.length}):`, ...bloques].join("\n");
-    hojaPromesas = filas.map(enviarHoja);
+    filasHoja = filas;
   } else if (esTienda) {
     const dest = el.destinatario.value.trim() || cliente, fecha = el.fecha.value, franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
     const telD = el.tel_destinatario.value.trim(), observaciones = (el.observaciones ? el.observaciones.value.trim() : "");
     msg = [...cab, ``, `🏪 RECOJO EN TIENDA`, `Recoge: ${dest}${telD ? " (" + telD + ")" : ""}`, `Fecha de recojo: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
-    hojaPromesas = [enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
-                 destinatario: dest, tel_destinatario: telD, direccion: "RECOJO EN TIENDA", referencia: "", distrito: "Tienda", fecha, franja, tarjeta, observaciones })];
+    filasHoja = [{ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
+                 destinatario: dest, tel_destinatario: telD, direccion: "RECOJO EN TIENDA", referencia: "", distrito: "Tienda", fecha, franja, tarjeta, observaciones }];
     entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: "RECOJO EN TIENDA", referencia: "", distrito: "Tienda", fecha, franja, tarjeta, observaciones });
   } else {
     const dest = el.destinatario.value.trim(), dir = el.direccion.value.trim(), dist = el.distrito.value.trim(), fecha = el.fecha.value;
@@ -1933,8 +1933,8 @@ $("form").addEventListener("submit", async e => {
     const telD = el.tel_destinatario.value.trim(), franja = el.franja.value, tarjeta = el.tarjeta.value.trim();
     const referencia = (el.referencia ? el.referencia.value.trim() : ""), observaciones = (el.observaciones ? el.observaciones.value.trim() : "");
     msg = [...cab, ``, `🛵 DELIVERY A DOMICILIO`, `Recibe: ${dest}${telD ? " (" + telD + ")" : ""}`, `Dirección: ${dir}, ${dist}`, referencia ? `Referencia: ${referencia}` : "", `Entrega: ${fecha}, ${franja}`, observaciones ? `Obs: ${observaciones}` : "", tarjeta ? `Tarjeta: "${tarjeta}"` : ""].filter(Boolean).join("\n");
-    hojaPromesas = [enviarHoja({ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
-                 destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones })];
+    filasHoja = [{ pedido_id: pedidoId, estado: "Pendiente", fecha_pedido: ahora, mes, cliente, telefono, dni, pago, productos: lineas.join("; ").replace(/•\s*/g, ""), total: Number(total),
+                 destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones }];
     entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
   }
 
@@ -1970,7 +1970,8 @@ $("form").addEventListener("submit", async e => {
     } catch (err) { liberarCupos(cuposReservados); alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
     for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
   }
-  // 3) Esperar a que el Excel reciba el pedido (máx 3 s) antes de salir a WhatsApp
+  // 3) Recién ahora (pasó cupo y guardado) registrar en el Excel, y esperar máx 3 s antes de salir a WhatsApp
+  const hojaPromesas = filasHoja.map(enviarHoja);
   try { await Promise.race([Promise.allSettled(hojaPromesas), new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
   // 4) Limpiar y avisar
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
