@@ -536,6 +536,13 @@
       <h2 style="margin-top:22px">Envío gratis</h2>
       <label class="ancho">Envío gratis desde (S/)<input id="pEnvio" type="number" min="0" step="1" value="150"></label>
       <label class="ancho">Costo del delivery (S/)<input id="pDelivery" type="number" min="0" step="1" value="7"></label>
+      <h2 style="margin-top:22px">Cupos máximos por franja horaria</h2>
+      <p class="ayuda">Cuántos pedidos aceptas como máximo en cada franja. Cuando se llena, la tienda no deja pedir más en esa franja. Los pedidos que marques como <b>Entregado</b> o <b>Para despacho</b> liberan su cupo y dejan entrar nuevos pedidos.</p>
+      <div class="grid2">
+        <label>Mañana (09:00 - 13:00)<input id="pCupoT1" type="number" min="1" step="1" value="10"></label>
+        <label>Tarde (13:00 - 17:00)<input id="pCupoT2" type="number" min="1" step="1" value="10"></label>
+        <label>Noche (17:00 - 21:00)<input id="pCupoT3" type="number" min="1" step="1" value="10"></label>
+      </div>
       <p class="ayuda">Si el pedido llega o supera el monto de "Envío gratis desde", el cliente ve <b>"envío GRATIS"</b>. Si es menor, verá que debe añadir el costo del delivery. Escribe <b>0</b> en "Envío gratis desde" si no quieres mostrar esa barra.</p>
       <h2 style="margin-top:22px">Impresión del mensaje (medidas de tu tarjeta, en cm)</h2>
       <p class="ayuda">El mensaje se centra y su tamaño se ajusta solo al espacio. Calibra estas medidas una sola vez.</p>
@@ -739,7 +746,7 @@ function revisarCupo(fecha, franja, avisoEl) {
   const id = cupoId(fecha, franja);
   nube.db.collection("cupos").doc(id).get().then(doc => {
     const n = doc.exists ? (doc.data().count || 0) : 0; cuposCache[id] = n;
-    if (avisoEl && n >= CUPO_MAX) { avisoEl.style.display = "block"; avisoEl.textContent = "⚠️ La franja " + franja + " del " + fecha + " ya está llena. Por favor elige otra franja u otra fecha."; }
+    if (avisoEl && n >= cupoMaxDe(franja)) { avisoEl.style.display = "block"; avisoEl.textContent = "⚠️ La franja " + franja + " del " + fecha + " ya está llena. Por favor elige otra franja u otra fecha."; }
   }).catch(() => {});
 }
 function liberarCupos(cids) { if (!nube) return; for (const cid of cids) { nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(() => {}); if (cuposCache[cid]) cuposCache[cid]--; } }
@@ -780,8 +787,9 @@ function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitul
   procesoCompra: "1. Elige tus productos y agrégalos al carrito.\n2. Toca “Finalizar compra” y completa los datos de entrega.\n3. Elige tu forma de pago y realiza el pago.\n4. Envía tu pedido por WhatsApp y adjunta tu comprobante.\n5. Preparamos y entregamos tu pedido en la fecha y hora elegida.",
   terminos: "• Los pedidos se confirman una vez recibido el pago y el comprobante.\n• Las entregas se realizan en la fecha y franja horaria seleccionadas, sujetas a disponibilidad.\n• Las imágenes son referenciales; las flores pueden variar según temporada, manteniendo el valor del arreglo.\n• Para cambios o cancelaciones, contáctanos por WhatsApp con anticipación.",
   nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto.",
-  tempOn: false, temporadas: [], deliveryCosto: 7, gaId: "" }; }
+  tempOn: false, temporadas: [], deliveryCosto: 7, gaId: "", cupos: { t1: 10, t2: 10, t3: 10 } }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
+function cupoMaxDe(franja) { const c = PORTADA.cupos || {}; const v = c[franjaCod(franja)]; return (typeof v === "number" && v > 0) ? v : CUPO_MAX; }
 const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
 const KEY = "happy_catalogo_v7";
@@ -1604,9 +1612,17 @@ function datosWhatsApp(id) {
   const full = "📦 Pedido — Floristería Happy\nCliente: " + (p.cliente || "") + " (" + (p.telefono || "") + ")\n\n" + txt;
   window.open("https://wa.me/?text=" + encodeURIComponent(full), "_blank");
 }
+function cupoOcupa(e) { return e === "Pendiente" || e === "Pagado"; } // estados que ocupan un cupo (los demás: Entregado / Para despacho = liberan)
 function cambiarEstado(id, estado) {
   if (!nube) { alert("Necesitas la nube (Firebase) para gestionar estados."); return; }
+  const p = PEDIDOS.find(x => x.id === id);
+  const antes = p ? (p.estado || "Pendiente") : null;
   nube.db.collection("pedidos").doc(id).update({ estado }).catch(e => alert("No se pudo actualizar: " + e.message));
+  // Liberar o reocupar cupos según el estado: al pasar a Entregado / Para despacho se libera; al volver a Pendiente/Pagado se vuelve a ocupar
+  if (p && antes) {
+    const delta = (cupoOcupa(antes) && !cupoOcupa(estado)) ? -1 : (!cupoOcupa(antes) && cupoOcupa(estado)) ? 1 : 0;
+    if (delta !== 0) for (const en of (p.entregas || [])) { const cid = cupoId(en.fecha, en.franja); nube.db.collection("cupos").doc(cid).set({ count: firebase.firestore.FieldValue.increment(delta) }, { merge: true }).catch(() => {}); cuposCache[cid] = Math.max(0, (cuposCache[cid] || 0) + delta); }
+  }
   if (PEDIDOS_URL) fetch(PEDIDOS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ accion: "estado", pedido_id: id, estado }) }).catch(() => {});
 }
 function eliminarPedido(id) {
@@ -1755,6 +1771,10 @@ function abrirPortadaAdmin() {
   $("pFuente").value = PORTADA.fuente || "elegante"; $("pMax").value = PORTADA.maxMsg || 250;
   $("pEnvio").value = (PORTADA.envioGratis != null) ? PORTADA.envioGratis : ENVIO_GRATIS_DESDE;
   $("pDelivery").value = (PORTADA.deliveryCosto != null) ? PORTADA.deliveryCosto : 7;
+  const cp = PORTADA.cupos || {};
+  if ($("pCupoT1")) $("pCupoT1").value = cp.t1 != null ? cp.t1 : 10;
+  if ($("pCupoT2")) $("pCupoT2").value = cp.t2 != null ? cp.t2 : 10;
+  if ($("pCupoT3")) $("pCupoT3").value = cp.t3 != null ? cp.t3 : 10;
   const def = defaultPortada();
   $("pProceso").value = (PORTADA.procesoCompra != null) ? PORTADA.procesoCompra : def.procesoCompra;
   $("pTerminos").value = (PORTADA.terminos != null) ? PORTADA.terminos : def.terminos;
@@ -1926,21 +1946,22 @@ $("form").addEventListener("submit", async e => {
     for (const en of entregas) {
       const cid = cupoId(en.fecha, en.franja);
       try {
+        const maxFr = cupoMaxDe(en.franja);
         await nube.db.runTransaction(async t => {
           const ref = nube.db.collection("cupos").doc(cid);
           const doc = await t.get(ref);
           const n = doc.exists ? (doc.data().count || 0) : 0;
-          if (n >= CUPO_MAX) throw { lleno: true };
+          if (n >= maxFr) throw { lleno: true };
           t.set(ref, { count: n + 1, fecha: en.fecha, franja: en.franja }, { merge: true });
         });
         cuposReservados.push(cid); cuposCache[cid] = (cuposCache[cid] || 0) + 1;
       } catch (err) {
-        if (err && err.lleno) { liberarCupos(cuposReservados); alert("⛔ La franja " + en.franja + " del " + en.fecha + " ya está llena (máximo " + CUPO_MAX + " pedidos).\n\nPor favor elige otra franja horaria u otra fecha."); return; }
+        if (err && err.lleno) { liberarCupos(cuposReservados); alert("⛔ La franja " + en.franja + " del " + en.fecha + " ya está llena (máximo " + cupoMaxDe(en.franja) + " pedidos).\n\nPor favor elige otra franja horaria u otra fecha."); return; }
         // Error de red en la transacción: no bloqueamos la venta.
       }
     }
   } else {
-    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= CUPO_MAX) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + CUPO_MAX + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
+    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= cupoMaxDe(en.franja)) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + cupoMaxDe(en.franja) + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
   }
   // 2) Guardar el pedido en la nube y ESPERAR a que termine (para que sí aparezca en el panel)
   if (nube) {
@@ -2056,6 +2077,7 @@ $("pGuardar").addEventListener("click", () => {
   obj.temporadas = [];
   for (let i = 0; i < 12; i++) { obj.temporadas.push({ texto: ($("temp" + i) ? $("temp" + i).value.trim() : ""), activo: !!($("tempAct" + i) && $("tempAct" + i).checked) }); }
   obj.gaId = ($("pGaId") ? $("pGaId").value.trim() : "");
+  obj.cupos = { t1: Math.max(1, Number($("pCupoT1").value) || 10), t2: Math.max(1, Number($("pCupoT2").value) || 10), t3: Math.max(1, Number($("pCupoT3").value) || 10) };
   if (!nube) { alert("Necesitas la nube (Firebase) para guardar la portada."); return; }
   nube.db.collection("config").doc("portada").set(obj).then(() => { PORTADA = obj; aplicarPortada(); avisar("pAviso", "✅ Portada guardada. Ya se ve en tu tienda."); }).catch(e => avisar("pAviso", "⚠️ " + e.message));
 });
