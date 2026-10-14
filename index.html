@@ -1860,10 +1860,14 @@ function validarCampos(lista) {
   }
   return true;
 }
+let enviandoPedido = false;
 $("form").addEventListener("submit", async e => {
   e.preventDefault();
+  if (enviandoPedido) return; // evita que se registre varias veces si tocan "Enviar" repetidamente
   if (!carrito.size) { alert("Agrega al menos un producto a tu pedido."); return; }
   const f = e.target, el = f.elements;
+  const btnEnviar = f.querySelector('button[type="submit"]');
+  const liberarEnvio = () => { enviandoPedido = false; if (btnEnviar) { btnEnviar.disabled = false; btnEnviar.textContent = "Enviar pedido por WhatsApp"; } };
   // Datos de quien compra
   if (!validarCampos([[el.cliente, "Quien compra (tu nombre)"], [el.telefono, "Teléfono / WhatsApp"]])) return;
   if ($("multi").checked && entregaModo === "tienda") entregaModo = "delivery";
@@ -1938,8 +1942,11 @@ $("form").addEventListener("submit", async e => {
     entregas.push({ producto: lineas.join("; ").replace(/•\s*/g, ""), destinatario: dest, tel_destinatario: telD, direccion: dir, referencia, distrito: dist, fecha, franja, tarjeta, observaciones });
   }
 
+  // Bloquear el botón: a partir de aquí el pedido se procesa una sola vez
+  enviandoPedido = true;
+  if (btnEnviar) { btnEnviar.disabled = true; btnEnviar.textContent = "Enviando… espera"; }
   // 0) Bloquear fecha/franja ya vencida
-  for (const en of entregas) { if (franjaVencida(en.fecha, en.franja)) { alert("⛔ La fecha u horario que elegiste ya pasó:\n\n👉 " + en.fecha + "  " + (en.franja || "") + "\n\nPor favor selecciona otra franja horaria u otra fecha."); return; } }
+  for (const en of entregas) { if (franjaVencida(en.fecha, en.franja)) { liberarEnvio(); alert("⛔ La fecha u horario que elegiste ya pasó:\n\n👉 " + en.fecha + "  " + (en.franja || "") + "\n\nPor favor selecciona otra franja horaria u otra fecha."); return; } }
   // 1) Reservar cupo de forma ATÓMICA (máximo CUPO_MAX pedidos por franja; no deja pasar más)
   const cuposReservados = [];
   if (nube) {
@@ -1956,18 +1963,18 @@ $("form").addEventListener("submit", async e => {
         });
         cuposReservados.push(cid); cuposCache[cid] = (cuposCache[cid] || 0) + 1;
       } catch (err) {
-        if (err && err.lleno) { liberarCupos(cuposReservados); alert("⛔ La franja " + en.franja + " del " + en.fecha + " ya está llena (máximo " + cupoMaxDe(en.franja) + " pedidos).\n\nPor favor elige otra franja horaria u otra fecha."); return; }
+        if (err && err.lleno) { liberarCupos(cuposReservados); liberarEnvio(); alert("⛔ La franja " + en.franja + " del " + en.fecha + " ya está llena (máximo " + cupoMaxDe(en.franja) + " pedidos).\n\nPor favor elige otra franja horaria u otra fecha."); return; }
         // Error de red en la transacción: no bloqueamos la venta.
       }
     }
   } else {
-    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= cupoMaxDe(en.franja)) { alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + cupoMaxDe(en.franja) + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
+    for (const en of entregas) { const cid = cupoId(en.fecha, en.franja); if ((cuposCache[cid] || 0) >= cupoMaxDe(en.franja)) { liberarEnvio(); alert("La franja " + en.franja + " del " + en.fecha + " ya está llena (" + cupoMaxDe(en.franja) + " pedidos). Por favor elige otra franja u otra fecha."); return; } }
   }
   // 2) Guardar el pedido en la nube y ESPERAR a que termine (para que sí aparezca en el panel)
   if (nube) {
     try {
       await nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas });
-    } catch (err) { liberarCupos(cuposReservados); alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
+    } catch (err) { liberarCupos(cuposReservados); liberarEnvio(); alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
     for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
   }
   // 3) Recién ahora (pasó cupo y guardado) registrar en el Excel, y esperar máx 3 s antes de salir a WhatsApp
@@ -1976,6 +1983,7 @@ $("form").addEventListener("submit", async e => {
   // 4) Limpiar y avisar
   avisar("aviso", "✅ Se abrió WhatsApp con tu pedido. Recuerda enviar tu comprobante de pago.");
   carrito.clear(); entregaModo = "delivery"; pintarCarrito(); f.reset(); $("pagoInfo").classList.add("oculto"); $("multi").checked = false; $("entregaUnica").classList.remove("oculto"); $("entregasMulti").classList.add("oculto"); $("entregaUnica").querySelectorAll("input,select,textarea").forEach(x => x.disabled = false);
+  liberarEnvio(); // el pedido ya se completó; dejar listo el botón para un próximo pedido
   // 5) Abrir WhatsApp (ya con el pedido guardado en la nube y en el Excel)
   location.href = `https://wa.me/${WHATSAPP}?text=` + encodeURIComponent(msg);
 });
