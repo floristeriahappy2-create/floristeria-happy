@@ -245,7 +245,12 @@
   .info h2 { margin:0 0 8px; font-size:23px; color:var(--rojo); }
   .precio-det { font-size:24px; font-weight:700; }
   .agot-det { display:inline-block; background:#333; color:#fff; padding:3px 10px; border-radius:6px; font-size:13px; margin:8px 0; }
-  .desc-det { color:var(--suave); font-size:14px; margin:12px 0; line-height:1.5; }
+  .desc-det { color:var(--texto); font-size:14px; margin:12px 0; line-height:1.6; background:var(--rosado); border:1px solid var(--borde); border-radius:12px; padding:14px 16px; }
+  .desc-det p { margin:0 0 9px; }
+  .desc-det p:last-child, .desc-det ul:last-child { margin-bottom:0; }
+  .desc-det b { color:var(--rojo); font-weight:700; }
+  .desc-det .desc-lista { margin:4px 0 11px; padding-left:20px; }
+  .desc-det .desc-lista li { margin:3px 0; }
   .add-row { margin:14px 0; }
   .comp-titulo { color:var(--rojo); font-size:16px; margin:18px 0 10px; border-top:1px solid var(--borde); padding-top:14px; }
   .complementos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:12px; }
@@ -829,6 +834,31 @@ const $ = id => document.getElementById(id);
 const soles = n => Number(n).toFixed(2);
 const estLabel = e => e === "Pendiente" ? "Nuevo pedido" : e === "Anulado" ? "Para despacho" : e;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// Da formato bonito a la descripción: detecta títulos "Xxx:" (los pone en negrita),
+// convierte guiones en lista con viñetas, y separa en párrafos. El vendedor escribe normal y se acomoda solo.
+function formatearDescripcion(texto) {
+  if (!texto) return "";
+  let t = esc(String(texto)).replace(/\r/g, "").trim();
+  t = t.replace(/\s*[•·]\s*/g, "\n• ");                         // viñetas ya escritas
+  t = t.replace(/(^|[^\d\s])\s*[-–—]\s+/g, "$1\n• ");           // guiones de lista → viñetas (evita números)
+  t = t.replace(/\s*([A-ZÁÉÍÓÚÜÑ][^:\n.]{1,34}?:)/g, "\n$1");   // salto antes de cada título "Xxx:"
+  const lineas = t.split("\n").map(s => s.trim()).filter(Boolean);
+  let html = "", enLista = false;
+  const cerrar = () => { if (enLista) { html += "</ul>"; enLista = false; } };
+  for (const ln of lineas) {
+    if (ln.startsWith("• ")) {
+      if (!enLista) { html += '<ul class="desc-lista">'; enLista = true; }
+      html += "<li>" + ln.slice(2).replace(/\s*[.;]\s*$/, "") + "</li>";
+      continue;
+    }
+    cerrar();
+    const m = ln.match(/^([A-ZÁÉÍÓÚÜÑ][^:]{1,34}?:)\s*(.*)$/);
+    if (m) html += "<p><b>" + m[1] + "</b>" + (m[2] ? " " + m[2] : "") + "</p>";
+    else html += "<p>" + ln + "</p>";
+  }
+  cerrar();
+  return html || ("<p>" + esc(texto) + "</p>");
+}
 const nuevoId = () => (CATALOGO.reduce((m,p) => Math.max(m, p.id), 0) + 1);
 
 /* ---------- Caché local grande (IndexedDB) para carga instantánea ---------- */
@@ -1119,7 +1149,7 @@ function abrirDetalle(id) {
       <div class="precio-det">S/ ${soles(p.precio)}${enDesc ? ` <span class="precio-antes">S/ ${soles(p.precioAntes)}</span>` : ""}</div>
       ${enDesc ? `<div class="ahorras">Ahorras: S/ ${soles(ahorro)}</div>` : ""}
       ${p.stock ? "" : '<div class="agot-det">Agotado</div>'}
-      ${p.desc ? `<p class="desc-det">${esc(p.desc)}</p>` : ""}
+      ${p.desc ? `<div class="desc-det">${formatearDescripcion(p.desc)}</div>` : ""}
       ${p.stock ? `<div class="det-total">Total: <b>S/ <span id="detTotal">${soles(p.precio)}</span></b></div>
       <div class="add-row">
         <div class="qty-step"><button type="button" data-qmenos aria-label="Menos">−</button><span id="detQty">1</span><button type="button" data-qmas aria-label="Más">+</button></div>
