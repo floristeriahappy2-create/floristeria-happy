@@ -162,17 +162,49 @@
   @keyframes seasonBlink { 0%,100%{ transform:scale(1); box-shadow:0 4px 14px rgba(194,39,47,.45); } 50%{ transform:scale(1.06); box-shadow:0 6px 22px rgba(194,39,47,.9); } }
   @media (prefers-reduced-motion: reduce){ .season-btn{ animation:none; } }
   @media (max-width:560px){ .season-btn{ font-size:15px; padding:11px 18px; } }
-  .temp-fila { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-  .temp-fila input[type=text] { flex:1; }
+  /* ===== Portada por secciones ===== */
+  .home-sec { margin:30px 0 8px; }
+  .home-sub { text-align:center; color:var(--suave); font-size:14px; margin:-4px 0 14px; }
+  .chips-row { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin-bottom:6px; }
+  .chips-row .chip { background:var(--card); border:1.5px solid var(--borde); color:var(--texto); font-size:14px; font-weight:600; padding:9px 15px; border-radius:22px; cursor:pointer; }
+  .chips-row .chip:hover { border-color:var(--rojo); color:var(--rojo); }
+  .chips-row .chip[aria-pressed="true"] { background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  /* Banner de campaña */
+  .campana { position:relative; margin:22px 0 6px; border-radius:18px; overflow:hidden; min-height:190px; display:flex; align-items:center; box-shadow:0 6px 22px rgba(0,0,0,.14); background:linear-gradient(135deg,#e23b43,#9e1b22); }
+  .campana img.camp-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .campana .camp-velo { position:absolute; inset:0; background:linear-gradient(90deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.35) 55%,rgba(0,0,0,.15) 100%); }
+  .campana .camp-txt { position:relative; z-index:2; padding:26px 24px; max-width:620px; }
+  .campana .camp-eti { display:inline-block; background:rgba(255,255,255,.22); color:#fff; font-size:12px; font-weight:800; letter-spacing:.5px; padding:4px 12px; border-radius:14px; margin-bottom:9px; }
+  .campana h3 { margin:0 0 10px; color:#fff; font-size:30px; line-height:1.15; text-shadow:0 2px 10px rgba(0,0,0,.4); }
+  .campana .camp-btn { display:inline-block; background:#fff; color:var(--rojo); border:0; font-size:15px; font-weight:800; padding:12px 24px; border-radius:26px; cursor:pointer; box-shadow:0 3px 12px rgba(0,0,0,.25); }
+  .campana .camp-btn:hover { filter:brightness(1.04); }
+  @media (max-width:560px){
+    .campana { min-height:160px; border-radius:14px; }
+    .campana .camp-txt { padding:18px 16px; }
+    .campana h3 { font-size:22px; }
+    .campana .camp-btn { font-size:14px; padding:11px 20px; }
+    .chips-row .chip { font-size:13px; padding:8px 13px; }
+  }
+  /* Suscripción floral */
+  .susc-caja { background:var(--rosado); border:1px solid var(--borde); border-radius:14px; padding:18px 20px; margin-bottom:16px; line-height:1.6; color:var(--texto); }
+  .susc-caja p { margin:0 0 9px; }
+  .susc-wa { display:inline-block; margin-top:6px; background:#25D366; color:#fff; font-weight:700; text-decoration:none; padding:11px 20px; border-radius:24px; }
+  .temp-fila { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .temp-fila input[type=text] { flex:1; min-width:140px; }
   .temp-fila label { flex-direction:row; align-items:center; gap:6px; font-size:13px; white-space:nowrap; margin:0; }
+  .temp-mini { width:42px; height:42px; flex:0 0 auto; border-radius:8px; background:var(--rosado); display:flex; align-items:center; justify-content:center; font-size:18px; overflow:hidden; }
+  .temp-mini img { width:100%; height:100%; object-fit:cover; }
+  .temp-sube { cursor:pointer; background:var(--rosado); color:var(--rojo); border-radius:8px; padding:8px 10px; font-size:16px; }
+  .temp-quita { background:transparent; border:1px solid var(--borde); color:var(--rojo); border-radius:8px; width:30px; height:30px; cursor:pointer; }
   .foot-links { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:16px; }
   .foot-link { background:var(--rosado); border:0; color:var(--rojo); font-size:14px; font-weight:600; padding:10px 16px; border-radius:22px; cursor:pointer; }
   .foot-link:hover { background:var(--rojo); color:#fff; }
   .foot-copy { color:var(--suave); font-size:13px; margin-bottom:12px; }
   .foot-admin { background:none; border:0; color:var(--suave); font-size:13px; text-decoration:underline; cursor:pointer; }
-  .fab-llamar { position:fixed; right:16px; bottom:16px; z-index:80; display:inline-flex; align-items:center; gap:8px; background:#25a244; color:#fff; padding:14px 20px; border-radius:30px; font-weight:700; font-size:16px; text-decoration:none; box-shadow:0 5px 16px rgba(0,0,0,.28); }
-  .fab-llamar:hover { background:#1e8a3a; }
-  .fab-ico { font-size:20px; line-height:1; }
+  .fab-llamar { position:fixed; right:16px; bottom:16px; z-index:80; display:inline-flex; align-items:center; gap:9px; background:#25D366; color:#fff; padding:13px 20px; border-radius:30px; font-weight:700; font-size:16px; text-decoration:none; box-shadow:0 5px 16px rgba(0,0,0,.28); }
+  .fab-llamar:hover { background:#1ebe5b; }
+  .fab-ico { line-height:0; display:inline-flex; }
+  .fab-ico svg { display:block; }
   .cart-panel.info-panel { position:relative; top:auto; right:auto; margin:8vh auto; height:auto; max-height:84vh; width:480px; max-width:92%; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.3); background:var(--fondo); }
   .info-panel .cart-head { background:var(--rosado); }
   .info-body { padding:22px; white-space:pre-wrap; line-height:1.6; color:var(--texto); font-size:15px; overflow-y:auto; flex:1; min-height:0; }
@@ -469,6 +501,9 @@
       <label>Precio antes (S/) <small style="color:var(--suave)">opcional, descuento</small><input name="precioAntes" type="number" step="0.10" min="0"></label>
       <label>Costo (S/) <small style="color:var(--suave)">opcional, para utilidad</small><input name="costo" type="number" step="0.10" min="0"></label>
       <label>Stock<input name="stock" type="number" min="0" required value="1"></label>
+      <label class="ancho" style="flex-direction:row;align-items:center;gap:8px;background:var(--rosado);border-radius:8px;padding:11px 14px;font-weight:600">
+        <input name="dispoSemana" type="checkbox"> ✅ Disponible esta semana <small style="color:var(--suave);font-weight:400">(listo para entrega inmediata)</small>
+      </label>
       <fieldset class="ancho" style="border:1px solid var(--borde);border-radius:8px;padding:10px 12px">
         <legend style="font-size:13px;padding:0 4px">Tipo de flor</legend>
         <div class="checks" id="checksTipo"></div>
@@ -585,28 +620,70 @@
   </section>
 
   <!-- ===== TIENDA ===== -->
-  <div class="cat-intro">
-    <span class="cat-line"></span>
-    <span class="cat-flor">🌷 Nuestra colección 🌷</span>
-    <span class="cat-line"></span>
-  </div>
-  <div class="nav-desktop">
-    <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
-    <nav class="ocasiones" id="ocasiones" aria-label="Filtro"></nav>
-  </div>
-  <div class="nav-mobile">
-    <select id="fSeccion" class="sel" aria-label="Sección"></select>
-    <select id="fTipo" class="sel" aria-label="Tipo de flor"></select>
-    <select id="fOcasion" class="sel" aria-label="Ocasión"></select>
-  </div>
-  <div class="filtros">
-    <select id="orden" aria-label="Ordenar">
-      <option value="pred">Ordenar: predeterminado</option>
-      <option value="precio-asc">Precio: bajo a alto</option>
-      <option value="precio-desc">Precio: alto a bajo</option>
-    </select>
-  </div>
-  <div class="grid" id="grid"></div>
+
+  <!-- 1) Campaña activa -->
+  <section id="campanaBanner" class="campana oculto" aria-label="Campaña"></section>
+
+  <!-- 2) Ocasiones -->
+  <section class="home-sec" id="secOcasiones">
+    <div class="cat-intro"><span class="cat-line"></span><span class="cat-flor">🎁 Ocasiones</span><span class="cat-line"></span></div>
+    <nav class="chips-row" id="chipsOcasiones" aria-label="Ocasiones"></nav>
+  </section>
+
+  <!-- 3) Disponibles esta semana -->
+  <section class="home-sec oculto" id="secDispo">
+    <div class="cat-intro"><span class="cat-line"></span><span class="cat-flor">✅ Disponibles esta semana</span><span class="cat-line"></span></div>
+    <p class="home-sub">Listos para entrega inmediata.</p>
+    <div class="grid" id="gridDispo"></div>
+  </section>
+
+  <!-- 4) Más vendidos -->
+  <section class="home-sec oculto" id="secTop">
+    <div class="cat-intro"><span class="cat-line"></span><span class="cat-flor">⭐ Más vendidos</span><span class="cat-line"></span></div>
+    <p class="home-sub">Los diseños que más nos piden.</p>
+    <div class="grid" id="gridTop"></div>
+  </section>
+
+  <!-- 5) Explora nuestros diseños -->
+  <section class="home-sec" id="secExplora">
+    <div class="cat-intro"><span class="cat-line"></span><span class="cat-flor">🌷 Explora nuestros diseños</span><span class="cat-line"></span></div>
+    <div class="nav-desktop">
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Categorías"></nav>
+      <nav class="ocasiones" id="ocasiones" aria-label="Tipo de flor"></nav>
+    </div>
+    <div class="nav-mobile">
+      <select id="fSeccion" class="sel" aria-label="Categoría"></select>
+      <select id="fTipo" class="sel" aria-label="Tipo de flor"></select>
+      <select id="fOcasion" class="sel" aria-label="Ocasión"></select>
+    </div>
+    <div class="filtros">
+      <select id="orden" aria-label="Ordenar">
+        <option value="pred">Ordenar: predeterminado</option>
+        <option value="precio-asc">Precio: bajo a alto</option>
+        <option value="precio-desc">Precio: alto a bajo</option>
+      </select>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- 6) Suscripción floral -->
+  <section class="home-sec" id="secSuscripcion">
+    <div class="cat-intro"><span class="cat-line"></span><span class="cat-flor">📅 Suscripción floral</span><span class="cat-line"></span></div>
+    <div class="susc-caja">
+      <p><b>Flores frescas, cada semana, sin que tengas que acordarte.</b></p>
+      <p>Eliges cada cuánto quieres recibirlas (semanal, quincenal o mensual) y nosotros preparamos un diseño fresco y distinto para cada entrega, en el día y la hora que más te acomode.</p>
+      <p>Ideal para tu casa, tu oficina o para regalar durante todo el año. <b>Escríbenos y armamos tu plan a tu medida.</b></p>
+      <a class="susc-wa" id="suscWa" href="#" target="_blank" rel="noopener">💬 Quiero mi suscripción</a>
+    </div>
+    <div class="grid" id="gridSusc"></div>
+  </section>
+
+  <!-- 7) Promociones -->
+  <section class="home-sec oculto" id="secPromos">
+    <div class="cat-intro"><span class="cat-line"></span><span class="cat-flor">🔥 Promociones</span><span class="cat-line"></span></div>
+    <p class="home-sub">Precios especiales por tiempo limitado.</p>
+    <div class="grid" id="gridPromos"></div>
+  </section>
 
   <section class="panel oculto" id="secPedido">
     <h2 id="miPedido">Tu pedido</h2>
@@ -714,7 +791,7 @@
 </footer>
 
 <!-- Botón flotante para llamar directo -->
-<a class="fab-llamar" id="fabLlamar" href="tel:+51941905462" aria-label="Llamar"><span class="fab-ico">📞</span><span class="fab-txt">Llamar</span></a>
+<a class="fab-llamar" id="fabLlamar" href="https://wa.me/51941905462" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp"><span class="fab-ico" aria-hidden="true"><svg viewBox="0 0 32 32" width="24" height="24" fill="currentColor" focusable="false"><path d="M16.001 3C9.374 3 4 8.373 4 15c0 2.35.676 4.54 1.844 6.39L4 29l7.82-1.8A11.93 11.93 0 0 0 16 27c6.627 0 12-5.373 12-12S22.628 3 16.001 3zm0 21.8c-1.86 0-3.59-.54-5.05-1.47l-.36-.22-4.64 1.07 1.09-4.52-.24-.37A9.76 9.76 0 0 1 6.2 15c0-5.404 4.396-9.8 9.8-9.8 5.404 0 9.8 4.396 9.8 9.8 0 5.404-4.396 9.8-9.8 9.8zm5.37-7.33c-.29-.145-1.72-.85-1.99-.947-.266-.097-.46-.145-.655.146-.194.29-.75.945-.92 1.14-.17.194-.34.218-.63.073-.29-.146-1.23-.453-2.34-1.444-.865-.772-1.45-1.724-1.62-2.015-.17-.29-.018-.447.128-.592.132-.13.29-.34.436-.51.146-.17.194-.29.29-.485.097-.194.05-.364-.024-.51-.073-.145-.655-1.58-.898-2.164-.236-.567-.476-.49-.655-.5l-.558-.01c-.194 0-.51.073-.776.364-.267.29-1.018.995-1.018 2.427s1.042 2.816 1.187 3.01c.146.194 2.05 3.13 4.967 4.39.694.3 1.236.479 1.658.613.697.222 1.33.19 1.832.115.559-.083 1.72-.703 1.963-1.382.242-.68.242-1.262.17-1.383-.073-.122-.267-.194-.558-.34z"/></svg></span><span class="fab-txt">WhatsApp</span></a>
 
 <!-- Ventana de información (Proceso de compra / Términos / Sobre nosotros) -->
 <div id="infoModal" class="cart-modal">
@@ -792,23 +869,28 @@ let PEDIDOS = [], unsubPedidos = null;
 function defaultPortada() { return { titulo: "Entregamos sentimientos", subtitulo: "Flores frescas y arreglos únicos. Tú eliges el momento, nosotros lo hacemos inolvidable.", imagenes: [], video: "", tarjeta: { alto: 22, ancho: 8, inicio: 11, area: 8.5 }, fuente: "elegante", maxMsg: 250, envioGratis: ENVIO_GRATIS_DESDE,
   procesoCompra: "1. Elige tus productos y agrégalos al carrito.\n2. Toca “Finalizar compra” y completa los datos de entrega.\n3. Elige tu forma de pago y realiza el pago.\n4. Envía tu pedido por WhatsApp y adjunta tu comprobante.\n5. Preparamos y entregamos tu pedido en la fecha y hora elegida.",
   terminos: "• Los pedidos se confirman una vez recibido el pago y el comprobante.\n• Las entregas se realizan en la fecha y franja horaria seleccionadas, sujetas a disponibilidad.\n• Las imágenes son referenciales; las flores pueden variar según temporada, manteniendo el valor del arreglo.\n• Para cambios o cancelaciones, contáctanos por WhatsApp con anticipación.",
-  nosotros: "En Floristería Happy entregamos sentimientos. Somos una floristería dedicada a crear ramos y arreglos frescos para cada ocasión especial: cumpleaños, aniversarios, condolencias y más.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto.",
+  nosotros: "Floristería Happy — ¡Entregamos sentimientos!\n\nCreamos diseños florales personalizados: tú nos cuentas la ocasión, el estilo y el presupuesto, y nosotros armamos un arreglo único pensado para esa persona especial.\n\nRamos, arreglos florales, flores secas, desayunos y anchetas, cuadros de macramé y suscripción floral, para cumpleaños, aniversarios, graduaciones, nacimientos, condolencias y cada momento que merece ser recordado.\n\nEscríbenos por WhatsApp y con gusto te ayudamos a elegir el detalle perfecto.",
   tempOn: false, temporadas: [], deliveryCosto: 7, gaId: "", cupos: { t1: 10, t2: 10, t3: 10 } }; }
 let PORTADA = defaultPortada(), portadaImgs = [], heroIdx = 0, heroTimer = null;
+let tempImgs = []; // imagen (banner) de cada campaña
 function cupoMaxDe(franja) { const c = PORTADA.cupos || {}; const v = c[franjaCod(franja)]; return (typeof v === "number" && v > 0) ? v : CUPO_MAX; }
 const FUENTES = { elegante: "'Playfair Display', Georgia, serif", manuscrita: "'Dancing Script', cursive", moderna: "Poppins, Arial, sans-serif" };
 let usuario = null;   // administrador conectado
 const KEY = "happy_catalogo_v7";
 const SECCIONES = [
-  { id:"ramos",        nombre:"Ramos",              icono:"💐" },
-  { id:"arreglos",     nombre:"Arreglos florales",  icono:"🌺" },
-  { id:"flores-secas", nombre:"Flores secas",       icono:"🌾" },
-  { id:"desayunos",    nombre:"Desayunos",          icono:"🥐" },
-  { id:"para-el",      nombre:"Para Él",            icono:"🤵" },
-  { id:"macrame",      nombre:"Cuadros macramé",    icono:"🪢" },
-  { id:"suscripcion",  nombre:"Suscripción floral", icono:"📅" },
-  { id:"complementos", nombre:"Complementos",       icono:"🎁" }
+  { id:"ramos",        nombre:"Ramos",                 icono:"💐" },
+  { id:"arreglos",     nombre:"Arreglos florales",     icono:"🌺" },
+  { id:"flores-secas", nombre:"Flores secas",          icono:"🌾" },
+  { id:"desayunos",    nombre:"Desayunos y anchetas",  icono:"🥐" },
+  { id:"macrame",      nombre:"Cuadros de macramé",    icono:"🪢" },
+  { id:"para-el",      nombre:"Para Él",               icono:"🤵" },
+  { id:"suscripcion",  nombre:"Suscripción floral",    icono:"📅" },
+  { id:"complementos", nombre:"Complementos",          icono:"🎁" }
 ];
+// Categorías que se muestran en "Explora nuestros diseños"
+const SEC_EXPLORA = ["ramos", "arreglos", "flores-secas", "desayunos", "macrame"];
+// El filtro "Tipo de flor" solo aplica a estas categorías
+const SEC_CON_TIPO = ["ramos", "arreglos"];
 const TIPOS = [
   { id:"tulipanes",   nombre:"Tulipanes",   icono:"🌷" },
   { id:"rosas",       nombre:"Rosas",       icono:"🌹" },
@@ -818,14 +900,24 @@ const TIPOS = [
   { id:"astromelias", nombre:"Astromelias", icono:"🌸" }
 ];
 const OCASIONES = [
-  { id:"cumpleanos",    nombre:"Cumpleaños",         icono:"🎂", tipo:"ocasion" },
-  { id:"aniversario",   nombre:"Aniversario",        icono:"💞", tipo:"ocasion" },
-  { id:"graduacion",    nombre:"Graduación",         icono:"🎓", tipo:"ocasion" },
-  { id:"inauguracion",  nombre:"Inauguraciones",     icono:"🎉", tipo:"ocasion" },
-  { id:"novias",        nombre:"Novias",             icono:"👰", tipo:"ocasion" },
-  { id:"escritorio",    nombre:"Para su escritorio", icono:"🪴", tipo:"ocasion" },
-  { id:"condolencias",  nombre:"Condolencias",       icono:"🕊️", tipo:"ocasion" }
+  { id:"para-el",        nombre:"Para él",          icono:"🤵", tipo:"ocasion" },
+  { id:"cumpleanos",     nombre:"Cumpleaños",       icono:"🎂", tipo:"ocasion" },
+  { id:"aniversario",    nombre:"Aniversario",      icono:"💞", tipo:"ocasion" },
+  { id:"graduacion",     nombre:"Graduación",       icono:"🎓", tipo:"ocasion" },
+  { id:"inauguracion",   nombre:"Inauguraciones",   icono:"🎉", tipo:"ocasion" },
+  { id:"novias",         nombre:"Novias",           icono:"👰", tipo:"ocasion" },
+  { id:"recien-nacido",  nombre:"Recién nacido",    icono:"👶", tipo:"ocasion" },
+  { id:"condolencias",   nombre:"Condolencias",     icono:"🕊️", tipo:"ocasion" },
+  { id:"agradecimiento", nombre:"Agradecimiento",   icono:"💐", tipo:"ocasion" },
+  { id:"otras",          nombre:"Otras ocasiones",  icono:"✨", tipo:"ocasion" }
 ];
+// "Para él" también muestra los productos que ya estaban guardados en la sección Para Él
+function coincideOcasion(p, oc) {
+  if (!oc) return true;
+  if (p.ocasiones && p.ocasiones.includes(oc)) return true;
+  if (oc === "para-el" && p.categoria === "para-el") return true;
+  return false;
+}
 let filtro = { sec:"", tipo:"", oc:"", group:"" };
 const EJEMPLO = [];
 let CATALOGO = [];
@@ -962,7 +1054,9 @@ function normalizar(lista) {
     precioAntes: Number(String(p.precioAntes ?? p.precio_antes ?? p["precio antes"] ?? 0).replace(",", ".")) || 0,
     costo: Number(String(p.costo ?? p.Costo ?? 0).replace(",", ".")) || 0,
     fotos: Array.isArray(p.fotos) ? p.fotos.filter(Boolean).map(String) : (String(p.foto ?? p.Foto ?? "").trim() ? [String(p.foto ?? p.Foto ?? "").trim()] : []),
-    foto: (Array.isArray(p.fotos) && p.fotos[0]) ? String(p.fotos[0]) : String(p.foto ?? p.Foto ?? "").trim()
+    foto: (Array.isArray(p.fotos) && p.fotos[0]) ? String(p.fotos[0]) : String(p.foto ?? p.Foto ?? "").trim(),
+    dispoSemana: !!(p.dispoSemana ?? p.disponible_semana ?? p["disponible esta semana"] ?? false),
+    vendidos: Number(p.vendidos ?? 0) || 0
   })).filter(p => p.nombre);
 }
 
@@ -973,7 +1067,7 @@ function leerOcasiones(v) {
   const ids = [];
   for (const x of partes) {
     const t = sinTilde(x); if (!t) continue;
-    const o = OCASIONES.find(o => o.id === t.replace(/\s+/g, "-") || sinTilde(o.nombre) === t || sinTilde(o.nombre).startsWith(t) || t.startsWith(sinTilde(o.nombre).replace(/s$/, "")) || (t.includes("defunc") && o.id === "condolencias") || (t.includes("madre") && o.id === "dia-madre") || (t.includes("mujer") && o.id === "dia-mujer") || (t.includes("valent") && o.id === "san-valentin") || (t.includes("amarill") && o.id === "flores-amarillas") || (t.includes("gradu") && o.id === "graduacion") || ((t === "para el" || t === "el" || t.includes("hombre")) && o.id === "para-el") || ((t.includes("novia") || t.includes("boda")) && o.id === "novias") || ((t.includes("escritorio") || t.includes("oficina")) && o.id === "escritorio") || (t.includes("navid") && o.id === "navidad"));
+    const o = OCASIONES.find(o => o.id === t.replace(/\s+/g, "-") || sinTilde(o.nombre) === t || sinTilde(o.nombre).startsWith(t) || t.startsWith(sinTilde(o.nombre).replace(/s$/, "")) || (t.includes("defunc") && o.id === "condolencias") || (t.includes("madre") && o.id === "dia-madre") || (t.includes("mujer") && o.id === "dia-mujer") || (t.includes("valent") && o.id === "san-valentin") || (t.includes("amarill") && o.id === "flores-amarillas") || (t.includes("gradu") && o.id === "graduacion") || ((t === "para el" || t === "el" || t.includes("hombre")) && o.id === "para-el") || ((t.includes("novia") || t.includes("boda")) && o.id === "novias") || ((t.includes("escritorio") || t.includes("oficina")) && o.id === "escritorio") || (t.includes("navid") && o.id === "navidad") || ((t.includes("nacid") || t.includes("bebe") || t.includes("baby")) && o.id === "recien-nacido") || ((t.includes("agradec") || t.includes("gracias")) && o.id === "agradecimiento") || (t.includes("otra") && o.id === "otras"));
     if (o && !ids.includes(o.id)) ids.push(o.id);
   }
   return ids;
@@ -1007,7 +1101,7 @@ function leerSeccion(v) {
 function seccionesTemporada() {
   if (!PORTADA || !PORTADA.tempOn) return [];
   const arr = Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : [];
-  return arr.map((t, i) => (t && t.activo && (t.texto || "").trim()) ? { id: "temp" + i, nombre: (t.texto || "").trim(), icono: "✨", temporada: true } : null).filter(Boolean);
+  return arr.map((t, i) => (t && t.activo && (t.texto || "").trim()) ? { id: "temp" + i, nombre: (t.texto || "").trim(), icono: "✨", temporada: true, img: (t.img || "") } : null).filter(Boolean);
 }
 const nombreSeccion = id => {
   const s = SECCIONES.find(x => x.id === id); if (s) return s.nombre;
@@ -1021,7 +1115,8 @@ function pintarSelects() {
   const opt = (val, label, sel) => `<option value="${val}" ${sel ? "selected" : ""}>${label}</option>`;
   $("fSeccion").innerHTML =
     seccionesTemporada().map(x => opt(x.id, `✨ ${x.nombre}`, filtro.sec === x.id)).join("") +
-    SECCIONES.map(x => opt(x.id, `${x.icono} ${x.nombre}`, filtro.sec === x.id)).join("");
+    SEC_EXPLORA.map(id => SECCIONES.find(s => s.id === id)).filter(Boolean)
+      .map(x => opt(x.id, `${x.icono} ${x.nombre}`, filtro.sec === x.id)).join("");
   $("fTipo").innerHTML = opt("", "🌸 Tipo de flor: todas", !filtro.tipo) +
     TIPOS.map(t => opt(t.id, `${t.icono} ${t.nombre}`, filtro.tipo === t.id)).join("");
   $("fOcasion").innerHTML = opt("", "🎁 Ocasión: todas", !filtro.oc) +
@@ -1035,17 +1130,60 @@ function primeraSeccion() {
 }
 function pintarTabs() {
   const sec = id => SECCIONES.find(x => x.id === id);
-  if (!filtro.sec && !filtro.group) filtro.sec = primeraSeccion();
-  const activo = filtro.group === "tipo" ? "tipos" : filtro.group === "ocasion" ? "ocasiones" : (filtro.sec || "");
+  // Si no hay ocasión elegida, siempre hay una categoría activa
+  if (!filtro.sec && !filtro.oc) filtro.sec = primeraSeccion();
   const temps = seccionesTemporada();
-  const tabs = [...temps, sec("ramos"), sec("arreglos"), sec("flores-secas"), sec("desayunos"), sec("para-el"), sec("macrame"), sec("suscripcion"), { id:"tipos", nombre:"Tipo de flor" }, { id:"ocasiones", nombre:"Ocasiones" }];
-  $("tabs").innerHTML = tabs.map(t => `<button class="tab${t.temporada ? " tab-temp" : ""}" role="tab" data-tab="${t.id}" aria-selected="${activo === t.id}">${t.temporada ? "✨ " : ""}${t.nombre}</button>`).join("");
-  const sub = filtro.group === "tipo" ? TIPOS : filtro.group === "ocasion" ? OCASIONES.filter(o => o.tipo === "ocasion") : [];
-  $("ocasiones").style.display = sub.length ? "" : "none";
-  const val = filtro.group === "tipo" ? filtro.tipo : filtro.group === "ocasion" ? filtro.oc : "";
-  const et = filtro.group === "tipo" ? "Todas las flores" : "Todas";
-  $("ocasiones").innerHTML = `<button class="chip" data-chip="" aria-pressed="${!val}">${et}</button>` +
-    sub.map(o => `<button class="chip" data-chip="${o.id}" aria-pressed="${val === o.id}">${o.icono} ${o.nombre}</button>`).join("");
+  const tabs = [...temps, ...SEC_EXPLORA.map(sec).filter(Boolean)];
+  $("tabs").innerHTML = tabs.map(t => `<button class="tab${t.temporada ? " tab-temp" : ""}" role="tab" data-tab="${t.id}" aria-selected="${filtro.sec === t.id}">${t.temporada ? "✨ " : ""}${t.nombre}</button>`).join("");
+  // "Tipo de flor" solo aparece dentro de Ramos y Arreglos florales
+  const conTipo = SEC_CON_TIPO.includes(filtro.sec);
+  $("ocasiones").style.display = conTipo ? "" : "none";
+  $("ocasiones").innerHTML = conTipo
+    ? `<button class="chip" data-chip="" aria-pressed="${!filtro.tipo}">Todas las flores</button>` +
+      TIPOS.map(o => `<button class="chip" data-chip="${o.id}" aria-pressed="${filtro.tipo === o.id}">${o.icono} ${o.nombre}</button>`).join("")
+    : "";
+  const ft = $("fTipo"); if (ft) ft.style.display = conTipo ? "" : "none";
+}
+function irAlCatalogo() { const s = $("secExplora"); if (s) s.scrollIntoView({ behavior:"smooth", block:"start" }); }
+// Chips de la sección Ocasiones (arriba). Al elegir una, el catálogo muestra esos diseños.
+function pintarChipsOcasiones() {
+  const c = $("chipsOcasiones"); if (!c) return;
+  c.innerHTML = `<button class="chip" data-ocachip="" aria-pressed="${!filtro.oc}">Todas</button>` +
+    OCASIONES.filter(o => o.tipo === "ocasion").map(o =>
+      `<button class="chip" data-ocachip="${o.id}" aria-pressed="${filtro.oc === o.id}">${o.icono} ${o.nombre}</button>`).join("");
+}
+// Banner de la campaña activa (Navidad, San Valentín, etc.). Si no hay, no ocupa espacio.
+function pintarCampanaBanner() {
+  const b = $("campanaBanner"); if (!b) return;
+  const act = seccionesTemporada();
+  if (!act.length) { b.classList.add("oculto"); b.innerHTML = ""; return; }
+  const t = act[0];
+  b.innerHTML = `${t.img ? `<img class="camp-bg" src="${esc(t.img)}" alt="${esc(t.nombre)}">` : ""}<div class="camp-velo"></div>
+    <div class="camp-txt">
+      <span class="camp-eti">✨ CAMPAÑA ACTIVA</span>
+      <h3>${esc(t.nombre)}</h3>
+      <button class="camp-btn" type="button" data-campana="${t.id}">Ver diseños →</button>
+    </div>`;
+  b.classList.remove("oculto");
+}
+// Secciones con productos de la portada
+function pintarSeccionesHome() {
+  const vivos = CATALOGO.filter(p => p.stock > 0 && p.categoria !== "complementos");
+  const llena = (idSec, idGrid, lista) => {
+    const s = $(idSec), g = $(idGrid); if (!s || !g) return;
+    if (!lista.length) { s.classList.add("oculto"); g.innerHTML = ""; return; }
+    g.innerHTML = lista.map(tarjetaHTML).join(""); s.classList.remove("oculto");
+  };
+  // Disponibles esta semana: marcados por la tienda y con stock real
+  llena("secDispo", "gridDispo", vivos.filter(p => p.dispoSemana).slice(0, 12));
+  // Más vendidos: según los pedidos registrados
+  llena("secTop", "gridTop", vivos.filter(p => p.vendidos > 0).sort((a, b) => b.vendidos - a.vendidos).slice(0, 8));
+  // Promociones vigentes
+  llena("secPromos", "gridPromos", vivos.filter(p => p.precioAntes > p.precio).slice(0, 12));
+  // Suscripción floral: su sección siempre se ve (explica el servicio), los productos solo si hay
+  const susc = CATALOGO.filter(p => p.stock > 0 && p.categoria === "suscripcion");
+  const gs = $("gridSusc"); if (gs) gs.innerHTML = susc.map(tarjetaHTML).join("");
+  const wa = $("suscWa"); if (wa) wa.href = `https://wa.me/${WHATSAPP}?text=` + encodeURIComponent("Hola Floristería Happy 🌹, quiero información sobre la Suscripción floral.");
 }
 function pintarChecks(selT = [], selO = []) {
   $("checksTipo").innerHTML = TIPOS.map(t =>
@@ -1181,7 +1319,7 @@ function pintarGrid() {
   const lista = CATALOGO.filter(p => p.stock > 0 && p.nombre.toLowerCase().includes(q)
     && (filtro.sec ? p.categoria === filtro.sec : p.categoria !== "complementos")
     && (!filtro.tipo || p.tipos.includes(filtro.tipo))
-    && (!filtro.oc || p.ocasiones.includes(filtro.oc)));
+    && coincideOcasion(p, filtro.oc));
   const orden = $("orden").value;
   if (orden === "precio-asc") lista.sort((a,b) => a.precio - b.precio);
   else if (orden === "precio-desc") lista.sort((a,b) => b.precio - a.precio);
@@ -1190,9 +1328,12 @@ function pintarGrid() {
     const enPromoA = (a.precioAntes > a.precio) ? 1 : 0, enPromoB = (b.precioAntes > b.precio) ? 1 : 0;
     return (b.stock > 0) - (a.stock > 0) || enPromoB - enPromoA || a.id - b.id;
   });
-  $("grid").innerHTML = lista.map(p => {
-    const enDesc = p.precioAntes > p.precio, ahorro = enDesc ? p.precioAntes - p.precio : 0;
-    return `
+  $("grid").innerHTML = lista.map(tarjetaHTML).join("") || `<p>${q ? `No encontramos productos que contengan “${esc(q)}”` : `Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}`}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
+}
+// Tarjeta de producto reutilizable (se usa en el catálogo y en todas las secciones de la portada)
+function tarjetaHTML(p) {
+  const enDesc = p.precioAntes > p.precio, ahorro = enDesc ? p.precioAntes - p.precio : 0;
+  return `
     <article class="card" data-ver="${p.id}">
       ${!p.stock ? '<span class="badge agot">AGOTADO</span>' : (enDesc ? '<span class="badge desc">EN DESCUENTO</span>' : "")}
       <div class="foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nombre)}" loading="lazy" decoding="async">` : "🌹"}</div>
@@ -1202,7 +1343,6 @@ function pintarGrid() {
         ${enDesc ? `<div class="ahorras">Ahorras: S/ ${soles(ahorro)}</div>` : ""}
       </div>
     </article>`;
-  }).join("") || `<p>${q ? `No encontramos productos que contengan “${esc(q)}”` : `Todavía no hay productos ${filtro.tipo ? "de " + esc(nombreTipo(filtro.tipo)) : filtro.oc ? "para " + esc(nombreOcasion(filtro.oc)) : filtro.sec ? "en " + esc(nombreSeccion(filtro.sec)) : "con ese filtro"}`}. Escríbenos por WhatsApp y te armamos uno a medida.</p>`;
 }
 let toastTimer;
 function toast(msg) {
@@ -1319,13 +1459,14 @@ function pintarAdmin() {
           <button class="peligro" data-borrar="${p.id}">Eliminar</button></td>
     </tr>`).join("") || '<tr><td colspan="5">No hay productos. Agrega uno o importa un archivo.</td></tr>';
 }
-function refrescar() { pintarTabs(); pintarSelects(); pintarGrid(); pintarCarrito(); pintarAdmin(); }
+function refrescar() { pintarCampanaBanner(); pintarChipsOcasiones(); pintarTabs(); pintarSelects(); pintarGrid(); pintarSeccionesHome(); pintarCarrito(); pintarAdmin(); }
 function avisar(id, html) { const a = $(id); a.style.display = "block"; a.innerHTML = html; }
 
 function modoEdicion(p) {
   const f = $("formProd");
   f.id.value = p ? p.id : ""; f.nombre.value = p ? p.nombre : ""; f.desc.value = p ? (p.desc || "") : ""; f.categoria.value = p ? p.categoria : "ramos";
   f.precio.value = p ? p.precio : ""; f.precioAntes.value = p ? (p.precioAntes || "") : ""; f.costo.value = p ? (p.costo || "") : ""; f.stock.value = p ? p.stock : 1; f.foto.value = "";
+  if (f.dispoSemana) f.dispoSemana.checked = p ? !!p.dispoSemana : false;
   pintarChecks(p ? p.tipos : [], p ? p.ocasiones : []);
   $("btnGuardar").textContent = p ? "Guardar cambios" : "Agregar producto";
   $("btnCancelar").classList.toggle("oculto", !p);
@@ -1339,7 +1480,8 @@ $("formProd").addEventListener("submit", async e => {
   if (f.foto.files.length) { try { fotos = []; for (const file of f.foto.files) fotos.push(await leerFoto(file)); } catch (err) { alert(err.message); return; } }
   const datos = { nombre:f.nombre.value.trim(), desc:f.desc.value.trim(), categoria:f.categoria.value, precio:Number(f.precio.value), precioAntes:Number(f.precioAntes.value)||0, costo:Number(f.costo.value)||0, stock:parseInt(f.stock.value)||0, foto:fotos[0]||"", fotos,
     tipos:[...f.querySelectorAll('[name=tipo]:checked')].map(c => c.value),
-    ocasiones:[...f.querySelectorAll('[name=oc]:checked')].map(c => c.value) };
+    ocasiones:[...f.querySelectorAll('[name=oc]:checked')].map(c => c.value),
+    dispoSemana: !!(f.dispoSemana && f.dispoSemana.checked) };
   let prod;
   if (id) { prod = CATALOGO.find(p => p.id === id); Object.assign(prod, datos); }
   else { prod = { id:nuevoId(), ...datos }; CATALOGO.push(prod); }
@@ -1418,14 +1560,20 @@ document.addEventListener("click", e => {
   if (d.quitar) { carrito.delete(+d.quitar); pintarCarrito(); return; }
   if (d.thumb !== undefined) { galIdx = Number(d.thumb); actualizarGaleria(); return; }
   if (d.tab !== undefined) {
-    filtro = d.tab === "tipos" ? { sec:"", tipo:filtro.tipo, oc:"", group:"tipo" }
-           : d.tab === "ocasiones" ? { sec:"", tipo:"", oc:filtro.oc, group:"ocasion" }
-           : { sec:d.tab, tipo:"", oc:"", group:"" };
-    pintarTabs(); pintarSelects(); pintarGrid();
+    filtro = { sec:d.tab, tipo:"", oc:"", group:"" };
+    pintarChipsOcasiones(); pintarTabs(); pintarSelects(); pintarGrid();
   }
-  if (d.chip !== undefined && e.target.classList.contains("chip")) {
-    if (filtro.group === "tipo") filtro.tipo = d.chip; else if (filtro.group === "ocasion") filtro.oc = d.chip;
+  if (d.chip !== undefined && e.target.classList.contains("chip")) {   // Tipo de flor
+    filtro.tipo = d.chip;
     pintarTabs(); pintarGrid();
+  }
+  if (d.ocachip !== undefined) {   // Ocasión elegida arriba: muestra esos diseños en el catálogo
+    filtro = { sec: d.ocachip ? "" : primeraSeccion(), tipo:"", oc: d.ocachip, group:"" };
+    pintarChipsOcasiones(); pintarTabs(); pintarSelects(); pintarGrid(); irAlCatalogo();
+  }
+  if (d.campana !== undefined) {   // Banner de campaña: lleva a sus diseños
+    filtro = { sec: d.campana, tipo:"", oc:"", group:"" };
+    pintarChipsOcasiones(); pintarTabs(); pintarSelects(); pintarGrid(); irAlCatalogo();
   }
   if (d.add) { cambiar(+d.add, 1); abrirCarrito(); }
   if (d.mas) cambiar(+d.mas, 1);
@@ -1743,12 +1891,9 @@ function actualizarLimites() {
   actualizarContadores();
 }
 function pintarSeasonBar() {
-  const sb = $("seasonBar"); if (!sb) return;
-  const activas = seccionesTemporada();
-  if (activas.length) {
-    sb.innerHTML = activas.map(t => `<button class="season-btn" type="button" data-tab="${t.id}">${esc(t.nombre)}</button>`).join("");
-    sb.classList.remove("oculto");
-  } else { sb.innerHTML = ""; sb.classList.add("oculto"); }
+  // La campaña activa ahora se muestra con el banner de la portada (no duplicamos el botón de arriba)
+  const sb = $("seasonBar"); if (sb) { sb.innerHTML = ""; sb.classList.add("oculto"); }
+  pintarCampanaBanner();
   if ($("tabs")) { pintarTabs(); pintarSelects(); }
   if ($("selSeccion")) pintarSecciones();
 }
@@ -1759,7 +1904,14 @@ function pintarTempFilas() {
   let html = "";
   for (let i = 0; i < 12; i++) {
     const t = arr[i] || { texto: "", activo: false };
-    html += `<div class="temp-fila"><input type="text" id="temp${i}" placeholder="${esc(ej[i])}" value="${esc(t.texto || "")}"><label><input type="checkbox" id="tempAct${i}" ${t.activo ? "checked" : ""}> Mostrar</label></div>`;
+    const img = tempImgs[i] || "";
+    html += `<div class="temp-fila">
+      <span class="temp-mini" id="tempMini${i}">${img ? `<img src="${esc(img)}" alt="">` : "🖼️"}</span>
+      <input type="text" id="temp${i}" placeholder="${esc(ej[i])}" value="${esc(t.texto || "")}">
+      <label class="temp-sube" title="Imagen del banner">📷<input type="file" id="tempImg${i}" accept="image/*" hidden data-tempimg="${i}"></label>
+      ${img ? `<button type="button" class="temp-quita" data-tempdel="${i}" title="Quitar imagen">✕</button>` : ""}
+      <label><input type="checkbox" id="tempAct${i}" ${t.activo ? "checked" : ""}> Mostrar</label>
+    </div>`;
   }
   $("tempFilas").innerHTML = html;
 }
@@ -1804,6 +1956,7 @@ function pintarPortadaThumbs() {
 function abrirPortadaAdmin() {
   $("pTitulo").value = PORTADA.titulo || ""; $("pSub").value = PORTADA.subtitulo || ""; $("pVideo").value = PORTADA.video || "";
   portadaImgs = [...(PORTADA.imagenes || [])]; pintarPortadaThumbs();
+  tempImgs = (Array.isArray(PORTADA.temporadas) ? PORTADA.temporadas : []).map(t => (t && t.img) || "");
   const t = PORTADA.tarjeta || { alto: 22, ancho: 8, inicio: 11, area: 8.5 };
   $("tAlto").value = t.alto; $("tAncho").value = t.ancho; $("tInicio").value = t.inicio; $("tArea").value = t.area;
   $("pFuente").value = PORTADA.fuente || "elegante"; $("pMax").value = PORTADA.maxMsg || 250;
@@ -2013,7 +2166,7 @@ $("form").addEventListener("submit", async e => {
     try {
       await nube.db.collection("pedidos").doc(pedidoId).set({ id: pedidoId, fechaISO, fecha: ahora, mes, cliente, telefono, dni, pago, total: Number(total), estado: "Pendiente", items, entregas });
     } catch (err) { liberarCupos(cuposReservados); liberarEnvio(); alert("No se pudo registrar el pedido. Revisa tu internet e inténtalo de nuevo."); return; }
-    for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c) }).catch(() => {});
+    for (const [id, c] of carrito) col().doc(String(id)).update({ stock: firebase.firestore.FieldValue.increment(-c), vendidos: firebase.firestore.FieldValue.increment(c) }).catch(() => {});
   }
   // 3) Recién ahora (pasó cupo y guardado) registrar en el Excel, y esperar máx 3 s antes de salir a WhatsApp
   const hojaPromesas = filasHoja.map(enviarHoja);
@@ -2105,7 +2258,7 @@ $("detPedModal").addEventListener("click", e => { if (e.target.id === "detPedMod
 $("monDetCerrar").addEventListener("click", () => $("monDetalle").classList.remove("abierto"));
 $("monDetalle").addEventListener("click", e => { if (e.target.id === "monDetalle") $("monDetalle").classList.remove("abierto"); });
 $("infoModal").addEventListener("click", e => { if (e.target.id === "infoModal") $("infoModal").classList.remove("abierto"); });
-if ($("fabLlamar")) $("fabLlamar").href = "tel:+" + WHATSAPP;
+if ($("fabLlamar")) $("fabLlamar").href = "https://wa.me/" + WHATSAPP;
 // Botón de temporada → llevar al catálogo (el filtro lo aplica el manejador de data-tab)
 document.addEventListener("click", e => {
   if (!e.target.closest(".season-btn")) return;
@@ -2115,6 +2268,18 @@ document.addEventListener("click", e => {
   if (dest) setTimeout(() => dest.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
 });
 $("pImgs").addEventListener("change", async e => { for (const f of e.target.files) { try { portadaImgs.push(await leerFotoHero(f)); } catch (err) {} } pintarPortadaThumbs(); e.target.value = ""; });
+// Imagen del banner de cada campaña
+document.addEventListener("change", async e => {
+  const i = e.target && e.target.dataset ? e.target.dataset.tempimg : null;
+  if (i == null || !e.target.files || !e.target.files[0]) return;
+  try { tempImgs[+i] = await leerFotoHero(e.target.files[0]); } catch (err) {}
+  e.target.value = ""; pintarTempFilas();
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest ? e.target.closest("[data-tempdel]") : null;
+  if (!b) return;
+  tempImgs[+b.dataset.tempdel] = ""; pintarTempFilas();
+});
 $("pGuardar").addEventListener("click", () => {
   const obj = { titulo: $("pTitulo").value.trim(), subtitulo: $("pSub").value.trim(), video: $("pVideo").value.trim(), imagenes: portadaImgs,
     tarjeta: { alto: Number($("tAlto").value) || 22, ancho: Number($("tAncho").value) || 8, inicio: Number($("tInicio").value) || 0, area: Number($("tArea").value) || 8.5 },
@@ -2122,14 +2287,18 @@ $("pGuardar").addEventListener("click", () => {
     procesoCompra: $("pProceso").value, terminos: $("pTerminos").value, nosotros: $("pNosotros").value };
   obj.tempOn = $("tempOn").checked;
   obj.temporadas = [];
-  for (let i = 0; i < 12; i++) { obj.temporadas.push({ texto: ($("temp" + i) ? $("temp" + i).value.trim() : ""), activo: !!($("tempAct" + i) && $("tempAct" + i).checked) }); }
+  for (let i = 0; i < 12; i++) { obj.temporadas.push({ texto: ($("temp" + i) ? $("temp" + i).value.trim() : ""), activo: !!($("tempAct" + i) && $("tempAct" + i).checked), img: tempImgs[i] || "" }); }
   obj.gaId = ($("pGaId") ? $("pGaId").value.trim() : "");
   obj.cupos = { t1: Math.max(1, Number($("pCupoT1").value) || 10), t2: Math.max(1, Number($("pCupoT2").value) || 10), t3: Math.max(1, Number($("pCupoT3").value) || 10) };
   if (!nube) { alert("Necesitas la nube (Firebase) para guardar la portada."); return; }
   nube.db.collection("config").doc("portada").set(obj).then(() => { PORTADA = obj; aplicarPortada(); avisar("pAviso", "✅ Portada guardada. Ya se ve en tu tienda."); }).catch(e => avisar("pAviso", "⚠️ " + e.message));
 });
 $("fTipo").addEventListener("change", e => { filtro.tipo = e.target.value; pintarTabs(); pintarGrid(); });
-$("fOcasion").addEventListener("change", e => { filtro.oc = e.target.value; pintarTabs(); pintarGrid(); });
+$("fOcasion").addEventListener("change", e => {
+  const v = e.target.value;
+  filtro = { sec: v ? "" : primeraSeccion(), tipo:"", oc: v, group:"" };
+  pintarChipsOcasiones(); pintarTabs(); pintarSelects(); pintarGrid();
+});
 const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
 document.querySelector('[name=fecha]').min = hoy.toISOString().slice(0, 10);
 pintarSecciones(); pintarChecks();
