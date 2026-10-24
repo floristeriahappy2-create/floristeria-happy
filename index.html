@@ -741,6 +741,7 @@
 <script>
 const WHATSAPP = "51941905462";
 const CUPO_MAX = 10;
+const PRIMER_LOTE = 12; // productos que se cargan primero para que la tienda abra de inmediato
 const ENVIO_GRATIS_DESDE = 150;   // 💡 Monto (S/) a partir del cual el envío es gratis. Cambia este número según tu política.
 let cuposCache = {};
 function franjaCod(f) { return ({ "09:00 - 13:00": "t1", "13:00 - 17:00": "t2", "17:00 - 21:00": "t3" })[f] || "tx"; }
@@ -897,15 +898,22 @@ async function iniciarNube() {
         }, e => console.error(e));
       } else if (unsubPedidos) { unsubPedidos(); unsubPedidos = null; PEDIDOS = []; }
     });
-    nube.db.collection("config").doc("portada").onSnapshot(doc => { PORTADA = Object.assign(defaultPortada(), doc.exists ? doc.data() : {}); aplicarPortada(); }, () => {});
-    let primera = true;
-    await new Promise(listo => {
-      nube.db.collection("productos").onSnapshot(snap => {
-        CATALOGO = normalizar(snap.docs.map(d => d.data()));
-        guardarCacheCatalogo();
-        if (primera) { primera = false; listo(); } else refrescar();
-      }, err => { console.error(err); if (primera) { primera = false; listo(); } });
-    });
+    nube.db.collection("config").doc("portada").onSnapshot(doc => { PORTADA = Object.assign(defaultPortada(), doc.exists ? doc.data() : {}); aplicarPortada(); idbSet("portada_cache", PORTADA); }, () => {});
+    // 1) Carga RÁPIDA: solo los primeros productos, para que la tienda abra de inmediato.
+    //    (Si ya se pintó desde el caché, no la usamos para no mostrar menos productos.)
+    try {
+      const rapido = await Promise.race([
+        nube.db.collection("productos").limit(PRIMER_LOTE).get(),
+        new Promise(r => setTimeout(() => r(null), 6000))
+      ]);
+      if (rapido && !rapido.empty && !CATALOGO.length) { CATALOGO = normalizar(rapido.docs.map(d => d.data())); refrescar(); }
+    } catch (e) { console.error(e); }
+    // 2) Catálogo COMPLETO en segundo plano: ya NO bloquea la apertura de la tienda
+    nube.db.collection("productos").onSnapshot(snap => {
+      CATALOGO = normalizar(snap.docs.map(d => d.data()));
+      guardarCacheCatalogo();
+      refrescar();
+    }, err => console.error(err));
     return true;
   } catch (err) { console.error(err); nube = null; return false; }
 }
@@ -1071,7 +1079,7 @@ function comprimirImagen(fileOrUrl, maxLado, objetivoKB) {
     img.src = url;
   });
 }
-function leerFoto(file) { return comprimirImagen(file, 760, 130); }
+function leerFoto(file) { return comprimirImagen(file, 700, 90); }
 function pesoDataURL(s) { return (typeof s === "string" && s.startsWith("data:")) ? s.length * 0.75 / 1024 : 0; }
 function fotosDe(p) { const a = Array.isArray(p.fotos) && p.fotos.length ? p.fotos.slice() : (p.foto ? [p.foto] : []); return a; }
 function pesoCatalogoKB() { let t = 0; for (const p of CATALOGO) for (const f of fotosDe(p)) t += pesoDataURL(f); return t; }
@@ -1097,7 +1105,7 @@ async function optimizarFotos() {
       const f = arr[i];
       if (typeof f === "string" && f.startsWith("data:")) {
         antes += pesoDataURL(f);
-        try { const nf = await comprimirImagen(f, 760, 130); if (nf.length < f.length * 0.93) { arr[i] = nf; cambio = true; } } catch {}
+        try { const nf = await comprimirImagen(f, 700, 90); if (nf.length < f.length * 0.93) { arr[i] = nf; cambio = true; } } catch {}
         despues += pesoDataURL(arr[i]);
       }
     }
@@ -2128,6 +2136,7 @@ pintarSecciones(); pintarChecks();
 // Mostrar al instante lo último que se vio (caché grande IndexedDB, con respaldo localStorage), mientras se conecta a la nube
 (async () => {
   let pintado = false;
+  try { const pc = await idbGet("portada_cache"); if (pc && pc.titulo) { PORTADA = Object.assign(defaultPortada(), pc); aplicarPortada(); } } catch (e) {}
   try { const c = await idbGet("cat_cache"); if (c && c.length) { CATALOGO = normalizar(c); refrescar(); pintado = true; } } catch (e) {}
   if (!pintado) { try { const ls = localStorage.getItem("cat_cache"); if (ls) { const a = normalizar(JSON.parse(ls)); if (a.length) { CATALOGO = a; refrescar(); pintado = true; } } } catch (e) {} }
   // Primera visita sin caché: pintar al instante desde el archivo estático catalogo.json (GitHub Pages es muy rápido), mientras Firebase conecta por detrás
